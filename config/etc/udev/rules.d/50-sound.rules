@@ -1,0 +1,1 @@
+ACTION=="add", SUBSYSTEM=="sound", RUN+="/usr/local/sbin/setup-sound"

@@ -1,0 +1,11 @@
+#!/bin/sh
+
+echo ... clear lpd spool ...
+
+killall -9 lp
+find /tmp -maxdepth 1 -mindepth 1 -name "tmp.*" -type f -exec rm -f {} \;
+find /var/spool/lpd -maxdepth 1 -mindepth 1 -type d -exec rm -rf {} \;
+
+rmmod lp
+rmmod parport_pc
+rmmod parport

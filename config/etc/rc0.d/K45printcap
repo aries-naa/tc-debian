@@ -1,0 +1,13 @@
+#!/bin/sh
+
+echo ... stop printcap ...
+
+if [ -r /etc/printers ]; then
+    rm /etc/printers
+fi
+if [ -r /etc/printcap ]; then
+    echo > /etc/printcap
+fi
+if [ -r /etc/default-printer ]; then
+    rm /etc/default-printer
+fi

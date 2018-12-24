@@ -1,0 +1,11 @@
+#!/bin/sh
+
+echo ... klogd, syslogd ...
+
+# вывод сообщений на 12 консоль
+touch /var/log/messages
+tail -f /var/log/messages > /dev/tty12 &
+
+# syslogd
+klogd
+syslogd

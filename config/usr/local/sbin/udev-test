@@ -1,0 +1,11 @@
+#!/bin/sh
+
+echo --- `date` :$1: --- >> /tmp/udev
+echo "ACTION          : $ACTION"          >> /tmp/udev
+echo "DEVNAME         : $DEVNAME"         >> /tmp/udev
+echo "DEVTYPE         : $DEVTYPE"         >> /tmp/udev
+echo "ID_TYPE         : $ID_TYPE"         >> /tmp/udev
+echo "ID_SERIAL_SHORT : $ID_SERIAL_SHORT" >> /tmp/udev
+echo >> /tmp/udev
+set >> /tmp/udev
+echo >> /tmp/udev

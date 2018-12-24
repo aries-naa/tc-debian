@@ -1,0 +1,15 @@
+# модуль для LPT порта
+ACTION=="add", KERNEL=="parport*",SUBSYSTEM=="platform", RUN+="/sbin/modprobe lp"
+
+# права доступа для разрешённых принтеров
+ACTION=="add", KERNEL=="lp*", ENV{ID_TYPE}=="printer", TAG=="enable", RUN+="/bin/chown root:users $env{DEVNAME}"
+ACTION=="add", KERNEL=="lp*", ENV{ID_TYPE}=="printer", TAG=="enable", RUN+="/bin/chmod ug+rw $env{DEVNAME}"
+
+# удаление устройств запрещённых принтеров
+ACTION=="add", KERNEL=="lp*", ENV{ID_TYPE}=="printer", TAG=="disable", RUN+="/bin/rm -f $env{DEVNAME}"
+
+# добавление принтера
+ACTION=="add", KERNEL=="lp*", ENV{ID_TYPE}=="printer", ATTRS{product}=="?*", TAG=="enable", RUN+="/usr/bin/flock /etc/printcap /usr/local/sbin/update-printcap add '%s{product}'"
+
+# удаление принтера
+ACTION=="remove", KERNEL=="lp*", ENV{ID_TYPE}=="printer", RUN+="/usr/bin/flock /etc/printcap /usr/local/sbin/update-printcap del"

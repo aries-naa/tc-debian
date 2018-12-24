@@ -1,0 +1,11 @@
+#!/bin/sh
+
+echo ... configure modules ...
+
+# alc887 kraftway
+alc887=$(find /sys/devices -name modalias -exec cat {} \; | grep "pci:v00008086d00003B56sv00001458sd0000A002bc04sc03i00")
+#alc887=""
+
+if [ -n "$alc887" ]; then
+    echo "options snd-hda-intel model=generic" >> /etc/modprobe.d/modules.conf
+fi

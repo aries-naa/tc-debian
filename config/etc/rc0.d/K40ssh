@@ -1,0 +1,8 @@
+#!/bin/sh
+
+echo ... stop sshd ...
+
+# dropbear pid file
+sshd_pid=$(cat /var/run/dropbear.pid)
+
+kill -9 $sshd_pid

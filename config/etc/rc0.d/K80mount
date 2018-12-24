@@ -1,0 +1,16 @@
+#!/bin/sh
+
+echo ... stop mount filesystems ...
+
+umount -fl /etc
+umount -fl /run
+umount -fl /var
+umount -fl /mnt
+umount -fl /root
+umount -fl /tmp
+
+umount -fl /sys
+umount -fl /dev/pts
+umount -fl /dev
+umount -fl /proc
+rm /etc/mtab

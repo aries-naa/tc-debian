@@ -1,0 +1,34 @@
+#!/bin/sh
+
+syslog_tag=TERMINAL.`hostname`
+
+logger -t $syslog_tag "Umount media: exec $0"
+
+# Точка монтирования удаляемого устройства
+mount_point=`mount | grep "^$DEVNAME " | awk '{print $3}'`
+
+# Каталог в /media
+media_path=/mnt/media/`basename $DEVNAME`
+
+if [ -n "$mount_point" ]; then
+    # Каталог в /media и точка монтирования
+    # должны совпадать.
+    if [ "$media_path" = "$mount_point" ]; then
+	logger -t $syslog_tag "Umount media: $media_path from $mount_point"
+	umount -lf "$mount_point"
+    fi
+fi
+
+# Как смонтиована /media/...
+media_mount=`mount | grep "on $media_path"`
+
+# /media/... не монтирован
+if [ -z "$media_mount" ]; then
+    # Удаляем каталог в /media
+    if [ -f "$media_path"/.media ]; then
+	logger -t $syslog_tag "Umount media: delete mount point $media_path"
+	rm    "$media_path"/.media
+        rmdir "$media_path"
+	#rm -rf "$media_path"
+    fi
+fi

@@ -1,0 +1,21 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+import sys
+import subprocess
+
+for arg in sys.argv:
+    if arg[:9] == "--initrd=" :
+        
+        fs_type = ""
+        initrd_f = open(arg[9:], "r")
+        fs_type  = initrd_f.read(4)
+        initrd_f.close()
+
+        if fs_type != "hsqs":
+            for i in range(0, len(sys.argv) - 1):
+                if sys.argv[i][:9] == "--append=" :
+                    sys.argv[i]="--append=\"\""
+
+sys.argv[0] = "/sbin/kexec.bin"
+subprocess.call(sys.argv)

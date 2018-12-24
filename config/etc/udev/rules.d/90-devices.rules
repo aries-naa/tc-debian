@@ -1,0 +1,8 @@
+# встроенный дисковод.
+ACTION=="add", DRIVERS=="floppy", ENV{ID_TYPE}="floppy"
+
+# все принтера.
+ACTION=="add", KERNEL=="lp*", ENV{ID_TYPE}="printer"
+
+# qemu virtio-pci.
+ACTION=="add", SUBSYSTEM=="block", DRIVERS=="virtio-pci", ENV{DEVTYPE}=="partition|disk", ENV{ID_TYPE}="disk"

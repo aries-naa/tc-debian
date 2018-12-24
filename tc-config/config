@@ -1,0 +1,35 @@
+#!/bin/sh
+
+./configure \
+    --prefix=/usr \
+    --with-sys-contact="empty" \
+    --with-sys-location="empty" \
+    --with-default-snmp-version="2" \
+    --with-logfile="var/log/snmpd.log" \
+    --with-persistent-directory="/var/lib/snmpd" \
+    --with-out-security-modules="ksm tsm" \
+    --enable-read-only \
+    --disable-static \
+    --disable-embedded-perl \
+    --disable-applications \
+    --disable-manuals \
+    --disable-scripts \
+    --disable-des \
+    --disable-privacy \
+    --disable-md5 \
+    --disable-deprecated \
+    --disable-set-support \
+    --disable-snmptrapd-subagent \
+    --enable-shared=no \
+    --enable-static=no \
+    --enable-minimalist \
+    --with-out-mib-modules="snmpv3mibs ucd_snmp agent_mibs agentx disman/event utilities" \
+    --with-out-transports="Unix Alias TCP UDPIPv6 Callback"
+
+#    --with-out-transports="Unix Alias TCP UDPIPv6 Callback"
+#    --with-out-mib-modules="mibII snmpv3mibs ucd_snmp notification target agent_mibs agentx disman/event utilities"
+
+# !!!
+#    --enable-mini-agent
+#    --disable-mibs
+#    --disable-mib-loading

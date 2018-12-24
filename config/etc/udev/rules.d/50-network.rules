@@ -1,0 +1,1 @@
+ACTION=="add", ATTR{address}!="00:00:00:00:00:00", SUBSYSTEM=="net", RUN+="/usr/local/sbin/udev-network $attr{address}"

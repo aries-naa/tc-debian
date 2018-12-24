@@ -1,0 +1,45 @@
+#!/bin/sh
+
+export LANG=en_US.UTF-8
+
+# printer
+if [ -r /etc/default-printer ]; then
+    export PRINTER=`cat /etc/default-printer`
+fi
+
+# xrandr
+if [ -r /etc/xrandr ]; then
+  cat /etc/xrandr | xargs -r xrandr
+fi
+
+# xset
+if [ -r /etc/xset ]; then
+  cat /etc/xset | xargs -r xset
+fi
+
+chown -R user:users /.ICAClient
+command=""
+xrandr=""
+
+while true; do
+    if [ -r /etc/debug ]; then
+	command=$(/usr/local/bin/tk-tcmain debug $xrandr)
+	retcode=$?
+    else
+	command=$(start-stop-daemon -S -c user:users -x /usr/local/bin/tk-tcmain $xrandr)
+	retcode=$?
+    fi
+    
+    if [ "$retcode" = "0" ]; then
+	if [ "$command" != "xrandr" ]; then
+	    echo $command
+	    exit 0
+	else
+	    xrandr="xrandr"
+	fi
+    else
+	/usr/bin/xvt
+    fi
+done
+
+exit $retcode

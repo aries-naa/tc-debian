@@ -1,0 +1,47 @@
+#!/bin/sh
+
+printcap=/etc/printcap
+lp=/usr/local/bin/lp
+
+printer=""
+for arg in $@; do
+    case $arg in
+	-P ) shift 
+	    printer=$@
+	    break
+	    ;;
+	-P* ) printer_arg=$@
+	    printer=${printer_arg:2}
+	    break
+	    ;;
+    esac
+    shift
+done
+
+[ -r $printcap ] || exit 1
+prn=`cat $printcap | awk -F ":" -v printer="$printer" '{if ($1 == printer) print $0;}'`
+[ -n "$printer" ] || exit 1
+
+local=`echo $prn | awk -F "=" -v RS=":" \
+'BEGIN {local=""}
+{if ($1 == "lp") local=$2}
+END {print local}'`
+
+remote=`echo $prn | awk -F "=" -v RS=":" \
+'BEGIN {remote=""}
+{if ($1 == "rm") remote=$2}
+END {print remote}'`
+
+port=`echo $prn | awk -F "=" -v RS=":" \
+'BEGIN {port=""}
+{if ($1 == "rp") port=$2}
+END {print port}'`
+
+spool=`mktemp`
+cat > $spool
+
+if [ -n "$local" ]; then
+    $lp local "$printer" "$spool" "$local" &
+else
+    $lp network "$printer" "$spool" "$remote" $port &
+fi

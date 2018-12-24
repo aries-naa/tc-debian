@@ -1,0 +1,12 @@
+#!/bin/sh
+
+echo ... stop snmpd ...
+
+if [ -r /var/run/snmpd.pid ]; then
+    snmpd_pid=$(cat /var/run/snmpd.pid)
+    kill -9 $snmpd_pid
+fi
+
+if [ -f /etc/snmp/snmpd.conf ]; then
+    rm /etc/snmp/snmpd.conf
+fi

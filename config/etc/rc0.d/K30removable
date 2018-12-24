@@ -1,0 +1,5 @@
+#!/bin/sh
+
+echo ... stop removable media ...
+
+/usr/local/sbin/umount-all-dev

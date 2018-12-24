@@ -1,0 +1,7 @@
+#!/bin/sh
+
+echo ... stop localtime ...
+
+if [ -r  /etc/localtime ]; then
+    rm /etc/localtime
+fi

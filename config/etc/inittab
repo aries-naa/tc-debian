@@ -1,0 +1,6 @@
+::sysinit:/etc/init.d/rc S
+::shutdown:/etc/init.d/rc 0
+::restart:/sbin/init
+
+#tty1::respawn:/bin/sh
+tty1::respawn:/usr/local/bin/start-tc

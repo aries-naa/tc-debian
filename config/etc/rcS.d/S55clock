@@ -1,0 +1,33 @@
+#!/bin/sh
+
+echo ... hwclock ...
+
+if [ -r /etc/localtime-utc ]; then
+    hwclock -s -u
+else
+    hwclock -s -l
+fi
+
+# Вначале ntp, затем rdate. Выход после первого удачного вызова rdate.
+
+echo ... ntp ....
+
+if [ -r /etc/ntp-server ]; then
+    for server in $(cat /etc/ntp-server); do
+	/usr/bin/rdate -n "$server"
+	if [ "$?" = "0" ]; then
+	    exit 0
+	fi
+    done
+fi
+
+echo ... rdate ....
+
+if [ -r /etc/rdate-server ]; then
+    for server in $(cat /etc/rdate-server); do
+	/usr/bin/rdate "$server"
+	if [ "$?" = "0" ]; then
+	    exit 0
+	fi
+    done
+fi

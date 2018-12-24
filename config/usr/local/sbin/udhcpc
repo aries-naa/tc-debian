@@ -1,0 +1,42 @@
+#!/bin/sh
+
+# сетевой интерфейс
+if [ -n  "$ip" ]; then
+    ifconfig "$interface" "$ip" netmask "$subnet" up
+    touch /run/network/$interface/dhcp
+fi
+
+# маршрутизация
+if [ -n  "$router" ]; then
+    route add default gw "$router"
+fi
+
+# resolv.conf
+if [ -n  "$domain" ]; then
+    echo "$domain" > /run/network/$interface/search
+fi
+if [ -n  "$dns" ]; then
+    echo -n > /run/network/$interface/nameserver
+    for ns in $dns; do
+	echo "$ns" >> /run/network/$interface/nameserver
+    done
+fi
+
+# ntpsrv
+if [ -n  "$ntpsrv" ]; then
+    if [ -f /run/network/$interface/ntpsrv ]; then
+	rm /run/network/$interface/ntpsrv
+    fi
+    for time_server in $ntpsrv; do
+	echo $time_server >> /run/network/$interface/ntpsrv
+    done
+fi
+
+# rootpath
+tune=""
+if [ -n  "$rootpath" ]; then
+    tune=`echo "$rootpath" | awk -F ',' '{print $1" "$2" "$3" "$4}'`
+    if [ -n "$tune" ]; then
+	echo $tune > /run/network/$interface/rootpath
+    fi
+fi

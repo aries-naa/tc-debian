@@ -1,0 +1,675 @@
+#!/usr/bin/env tclsh
+
+package require inifile
+
+# /var/cache/network/* содержит список инициализированных сетевых интер-
+# фейсов. В файле записан ethrnet-адрес интерфейса.
+# Файлы конфигурации в каталоге /mnt.
+# --- !!! ---
+set nw_list   "/run/network"
+set tc_config "/mnt/config"
+set etc_dir   "/etc"
+set home $env(HOME)
+set cl_config [file join $home .ICAClient]
+
+# Чтение сетевой конфигурации.
+# host_config        - ссылка на ассоциативный массив.
+# connections_config - ссылка на ассоциативный массив.
+# config_file        - файл конфигурации.
+proc read_system_config {config_file} {
+
+    global sys_config
+    global apps_config
+    global prn_config
+    global printers
+    global snd_config
+    global xrnd_config
+    global sec_config
+    global power_config
+
+    if {[catch {::ini::open $config_file "r"} config_fd] == 0} {
+
+	# секция host
+        catch {array set sys_config [::ini::get $config_fd "host"]}
+
+	# секция connections
+	catch {array set apps_config [::ini::get $config_fd "connections"]}
+
+	# секция printing
+	catch {array set prn_config [::ini::get $config_fd "printing"]}
+
+	# секция printers
+	catch {
+	    foreach printer [::ini::keys $config_fd "printers"] {
+		array set prn {
+		    type   ""
+		    device ""
+		    port   ""
+		    driver ""
+		}
+		catch {array set prn [::ini::get $config_fd $printer]}
+		if {$prn(type) == "local" || $prn(type) == "network"} {
+		    set printers($printer) [list $prn(type) $prn(device) $prn(port) $prn(driver)]
+		}
+	    }
+	}
+
+	# секция sound
+	catch {array set snd_config [::ini::get $config_fd "sound"]}
+
+	# секция screen
+	catch {array set xrnd_config [::ini::get $config_fd "screen"]}
+
+	# секция power
+	catch {array set power_config [::ini::get $config_fd "power"]}
+
+	# секция security
+	catch {array set sec_config [::ini::get $config_fd "security"]}
+
+        ::ini::close $config_fd
+    }
+}
+
+proc find_config_file {config_file} {
+    global nw_list
+    global tc_config
+
+    if {[string range $config_file 0 1] == "~/"} {
+	set src_file [string range $config_file 2 end]
+	foreach interface [glob -nocomplain -type d -directory ${nw_list} *] {
+	    if {[catch {open $interface/address "r"} iface_fd] == 0} {
+		set private_config [file join $tc_config [string map {: -} [gets $iface_fd]] $src_file]
+		close $iface_fd
+		if {[file readable $private_config] == 1} {
+		    return "$private_config"
+		}
+	    }
+	}
+    } else {
+	set public_config [file join $tc_config $config_file]
+	if {[file readable $public_config] == 1} {
+	    return "$public_config"
+	}
+    }
+    return ""
+}
+
+# Копирует файл конфигурации.
+# Если имя файла начинается с "~/" - это индивидуальный конфигурационный файл.
+# Он ищется в каталогах /mnt/{ethernet}/ и используется первый попавшийся.
+# Иначе - это общий конфигурационный файл. Ищется в /mnt/.
+proc copy_config_file {config_file dest_file} {
+    global nw_list
+    global tc_config
+
+    set real_config_file [find_config_file $config_file]
+    if {$real_config_file != ""} {
+	file copy -force $real_config_file $dest_file
+    }
+}
+
+# Конфигурация по умолчанию.
+# tc-default
+array set sys_config {
+    hostname       ""
+    domain         ""
+    localtime      ""
+    utc            "off"
+    remote-syslog  ""
+    logins         ""
+    autologon      "off"
+    debug          "on"
+    ntp-server     ""
+    rdate-server   ""
+    ntp-dhcp       "on"
+    snmp           "off"
+    snmp-community "public"
+    location       "empty"
+    contact        "empty"
+}
+
+array set apps_config {
+    ica-apps   ""
+    ica-client ""
+    rdp-apps   ""
+    app-index  0
+}
+
+array set prn_config {
+    default ""
+    drivers ""
+}
+
+array set printers {}
+
+array set snd_config {}
+
+array set xrnd_config {
+    xresources ""
+    modeline   ""
+    size       ""
+    wallpaper  ""
+}
+
+array set power_config {
+    dpms        ""
+    screensaver ""
+}
+
+array set sec_config {
+    whitelist ""
+}
+
+# Загрузить общий конфиг.
+read_system_config [file join $tc_config "system"]
+
+# Для каждого инициализированного сетевого интерфейса загрузить индивидуальный конфиг.
+foreach interface [glob -nocomplain -type d -directory ${nw_list} *] {
+    if {[file isfile $interface/dhcp] == 1} {
+	if {[catch {open $interface/address "r"} iface_fd] == 0} {
+	    set config_file [file join $tc_config [string map {: -} [gets $iface_fd]] "system"]
+	    close $iface_fd
+	    read_system_config $config_file
+	}
+    }
+}
+
+# Записать настройки в систему.
+
+# host
+# /etc/hostname
+if {$sys_config(hostname) != ""} {
+    catch {
+	set host_fd [open $etc_dir/hostname "w"]
+	puts $host_fd $sys_config(hostname)
+	close $host_fd
+    }
+}
+
+# host
+# /etc/hosts
+if {$sys_config(hostname) != ""} {
+    catch {
+	set hosts_fd [open $etc_dir/hosts "w"]
+	puts $hosts_fd "127.0.0.1 $sys_config(hostname) localhoat"
+	close $hosts_fd
+    }
+}
+
+catch {exec hostname -F /etc/hostname}
+
+# host
+# /etc/domain
+if {$sys_config(domain) != ""} {
+    catch {
+	set domain_fd [open $etc_dir/domain "w"]
+	puts $domain_fd $sys_config(domain)
+	close $domain_fd
+    }
+}
+
+# host
+# Для каждого незарегистрированного в DNS интерфейса провести регистрацию
+foreach interface [glob -nocomplain -type d -directory ${nw_list} *] {
+
+    set iface [file tail $interface]
+    if {[file isfile $interface/dhcp] && [file isfile $interface/dns] != 1} {
+
+	set domain   ""
+	set dns_name ""
+
+	# domain берём из сетевой настройки.
+	if {[file isfile $interface/domain] == 1} {
+	    catch {
+		set domain_fd [open $interface/domain "r"]
+		gets $domain_fd domain
+		close $domain_fd
+	    }
+	}
+
+	# если domian нет в сетевой настройке - берём системную.
+	if {$domain == ""} {
+	    set domain $sys_config(domain)
+	}
+
+	if {$sys_config(hostname) != ""} {
+	    if {$domain != ""} {
+		set dns_name ${sys_config(hostname)}.${domain}
+		# --- !!! ---
+		catch {exec /sbin/udhcpc -i $iface -F "${sys_config(hostname)}.${domain}" -t 10 -n -q}
+		#puts "/sbin/udhcpc -i $iface -F ${sys_config(hostname)}.${domain} -t 10 -n -q"
+	    } else {
+		set dns_name ${sys_config(hostname)}
+		# --- !!! ---
+		catch {exec /sbin/udhcpc -i $iface -H "${sys_config(hostname)}" -t 10 -n -q}
+		#puts "/sbin/udhcpc -i $iface -H ${sys_config(hostname)} -t 10 -n -q"
+	    }
+	    catch {
+		set dns_fd [open "$interface/dns" w]
+		puts $dns_fd $dns_name
+		close $dns_fd
+	    }
+	}
+    }
+}
+
+# host
+# localtime
+if {$sys_config(localtime) != ""} {
+    copy_config_file $sys_config(localtime) [file join $etc_dir localtime]
+}
+
+# host
+# logins
+catch {
+    set logins_fd [open ${cl_config}/logins "w"]
+    puts $logins_fd $sys_config(logins)
+    close $logins_fd
+}
+
+# host
+# autologon
+if {$sys_config(autologon) == "on"} {
+    set autologon_fd [open ${cl_config}/autologon "w"]
+    close $autologon_fd
+}
+
+# host
+# debug
+if {$sys_config(debug) == "on"} {
+    set debug_fd [open ${etc_dir}/debug "w"]
+    close $debug_fd
+}
+
+# host
+# utc
+if {$sys_config(utc) == "on"} {
+    set utc_fd [open ${etc_dir}/localtime-utc "w"]
+    close $utc_fd
+}
+
+# host
+# remote-syslog
+if {$sys_config(remote-syslog) != ""} {
+    catch {
+	set syslog_fd [open ${etc_dir}/remote-syslog "w"]
+	puts $syslog_fd $sys_config(remote-syslog)
+	close $syslog_fd
+    }
+}
+
+# host
+# ntp-server
+if {$sys_config(ntp-server) != ""} {
+    set ntp_servers [split $sys_config(ntp-server) " "]
+    catch {
+	set ntpsrv_fd [open ${etc_dir}/ntp-server "w"]
+	foreach ntpsrv $ntp_servers {
+	    if {$ntpsrv != ""} {
+		puts $ntpsrv_fd $ntpsrv
+	    }
+	}
+	close $ntpsrv_fd
+    }
+}
+
+# host
+# rdate-server
+if {$sys_config(rdate-server) != ""} {
+    set rdate_servers [split $sys_config(rdate-server) " "]
+    catch {
+	set rdatesrv_fd [open ${etc_dir}/rdate-server "w"]
+	foreach rdatesrv $rdate_servers {
+	    if {$rdatesrv != ""} {
+		puts $rdatesrv_fd $rdatesrv
+	    }
+	}
+	close $rdatesrv_fd
+    }
+}
+
+# host
+# ntp-dhcp
+if {$sys_config(ntp-dhcp) == "on"} {
+    set ntp_servers {}
+    foreach interface [glob -nocomplain -type d -directory ${nw_list} *] {
+	if {[catch {open $interface/ntpsrv "r"} ntpsrv_fd] == 0} {
+	    while {[eof $ntpsrv_fd] == 0} {
+		set ntpsrv [gets $ntpsrv_fd]
+		if {$ntpsrv != ""} {
+		    lappend ntp_servers $ntpsrv
+		}
+	    }
+	    close $ntpsrv_fd
+	}
+    }
+    catch {
+	set ntpsrv_fd [open ${etc_dir}/ntp-server "a+"]
+	foreach ntpsrv $ntp_servers {
+	    if {$ntpsrv != ""} {
+		puts $ntpsrv_fd $ntpsrv
+	    }
+	}
+	close $ntpsrv_fd
+    }
+}
+
+# host
+# snmp
+if {$sys_config(snmp) == "on"} {
+    catch {
+	set snmp_fd [open $etc_dir/snmp/snmpd.conf "w"]
+	puts $snmp_fd "view systemonly included iso.3.6.1.2.1.1"
+	puts $snmp_fd "view systemonly included iso.3.6.1.2.1.2"
+	puts $snmp_fd "view systemonly included iso.3.6.1.2.1.3"
+	puts $snmp_fd "view systemonly included iso.3.6.1.2.1.4"
+	puts $snmp_fd "view systemonly included iso.3.6.1.2.1.5"
+	puts $snmp_fd "view systemonly included iso.3.6.1.2.1.6"
+	puts $snmp_fd "view systemonly included iso.3.6.1.2.1.7"
+	puts $snmp_fd "view systemonly included iso.3.6.1.2.1.11"
+	puts $snmp_fd "view systemonly included iso.3.6.1.2.1.25.1"
+	puts $snmp_fd "view systemonly included iso.3.6.1.2.1.25.2"
+	puts $snmp_fd "view systemonly included iso.3.6.1.2.1.25.3"
+	puts $snmp_fd "view systemonly included iso.3.6.1.2.1.25.5"
+	puts $snmp_fd "view systemonly included iso.3.6.1.2.1.31"
+	puts $snmp_fd "view systemonly included iso.3.6.1.2.1.92"
+	puts $snmp_fd "rocommunity $sys_config(snmp-community) default -V systemonly"
+	puts $snmp_fd "syslocation $sys_config(location)"
+	puts $snmp_fd "syscontact $sys_config(contact)"
+	
+	close $snmp_fd
+    }
+}
+
+# connections
+# ica-apps
+if {$apps_config(ica-apps) != ""} {
+    copy_config_file $apps_config(ica-apps) [file join $cl_config appsrv.ini]
+}
+
+# connections
+# ica-client
+if {$apps_config(ica-client) != ""} {
+    copy_config_file $apps_config(ica-client) [file join $cl_config wfclient.ini]
+}
+
+# connections
+# rdp-apps
+if {$apps_config(rdp-apps) != ""} {
+    copy_config_file $apps_config(rdp-apps) [file join $cl_config rdp.ini]
+}
+
+# connections
+# app-index
+if {$apps_config(app-index) != "0"} {
+    catch {
+	set app_fd [open ${cl_config}/app-index "w"]
+	puts $app_fd $apps_config(app-index)
+	close $app_fd
+    }
+}
+
+# printing
+# default
+if {$prn_config(default) != ""} {
+    catch {
+	set prn_fd [open ${etc_dir}/default-printer "w"]
+	puts $prn_fd $prn_config(default)
+	close $prn_fd
+    }
+}
+
+# printing
+# drivers
+if {$prn_config(drivers) != ""} {
+    copy_config_file $prn_config(drivers) [file join $etc_dir printers]
+}
+
+# printers
+# /etc/printcap
+catch {
+    set printcap_fd [open ${etc_dir}/printcap "w"]
+    foreach printer [array names printers] {
+	set prn $printers($printer)
+	set prn_type   [lindex $prn 0]
+	set prn_device [lindex $prn 1]
+	set prn_port   [lindex $prn 2]
+	set prn_driver [lindex $prn 3]
+	puts -nonewline $printcap_fd "${printer}:"
+	if {$prn_type == "local"} {
+	    puts -nonewline $printcap_fd "lp=${prn_device}:"
+	} elseif {$prn_type == "network"} {
+	    puts -nonewline $printcap_fd "rm=${prn_device}:"
+	    puts -nonewline $printcap_fd "rp=${prn_port}:"
+	}
+	puts $printcap_fd ":wd=${prn_driver}:"
+    }
+    close $printcap_fd
+}
+
+# sound
+catch {
+    set sound_fd [open ${etc_dir}/sound "w"]
+
+    foreach sound_param [array names snd_config] {
+	puts $sound_fd "sset \"$sound_param\" $snd_config($sound_param)"
+    }
+
+    close $sound_fd
+}
+
+# screen
+# xresources
+if {$xrnd_config(xresources) != ""} {
+    copy_config_file $xrnd_config(xresources) [file join $home .tk-tcmain]
+}
+array unset xrnd_config xresources
+
+# wallpaper
+if {$xrnd_config(wallpaper) != ""} {
+    copy_config_file $xrnd_config(wallpaper) [file join $home root.ppm]
+}
+array unset xrnd_config wallpaper
+
+# screen
+# modeline
+array unset xrnd_config modeline
+
+catch {
+    set xrandr_fd [open ${etc_dir}/xrandr "w"]
+
+    # screen
+    # size
+    if {$xrnd_config(size) != ""} {
+	puts $xrandr_fd "-s \"${xrnd_config(size)}\""
+    }
+    array unset xrnd_config size
+
+    # screen
+    # ...
+    foreach output [array names xrnd_config] {
+	# 0-mode, 1-rate.
+	set xrandr_mode [split $xrnd_config($output)]
+	set mode [lindex $xrandr_mode 0]
+	set rate [lindex $xrandr_mode 1]
+	if {$mode != ""} {
+	    puts -nonewline $xrandr_fd "--output \"${output}\" --mode \"${mode}\""
+	    if {$rate != ""} {
+		puts -nonewline $xrandr_fd " --rate \"${rate}\""
+	    }
+	    puts $xrandr_fd ""
+	}
+    }
+
+    close $xrandr_fd
+}
+
+catch {
+    set xset_fd [open ${etc_dir}/xset "w"]
+
+    # power
+    # dpms
+    if {$power_config(dpms) != ""} {
+	puts -nonewline $xset_fd "dpms"
+	foreach xset_param [split $power_config(dpms)] {
+	    puts -nonewline $xset_fd " \"${xset_param}\""
+	}
+	puts $xset_fd ""
+    }
+
+    # power
+    # screensaver
+    if {$power_config(screensaver) != ""} {
+	puts -nonewline $xset_fd "s"
+	foreach xset_param [split $power_config(screensaver)] {
+	    puts -nonewline $xset_fd " \"${xset_param}\""
+	}
+	puts $xset_fd ""
+    }
+
+    close $xset_fd
+}
+
+# secutity
+# whitelist
+array set block_list   {}
+array set lp_list      {}
+array set serial_list  {}
+
+if {$sec_config(whitelist) != ""} {
+
+    set whitelist_file [find_config_file "$sec_config(whitelist)"]
+
+    if {$whitelist_file != ""} {
+	if {[catch {::ini::open $whitelist_file "r"} whitelist_fd] == 0} {
+
+	    catch {array set block_list  [::ini::get $whitelist_fd "block"]}
+	    catch {array set lp_list     [::ini::get $whitelist_fd "lp"]}
+	    catch {array set vendor_list [::ini::get $whitelist_fd "vendor"]}
+	    catch {array set serial_list [::ini::get $whitelist_fd "serial"]}
+
+	    ::ini::close $whitelist_fd
+	}
+    }
+}
+
+proc block_cmp {a b} {
+    set al [llength [split $a ":"]]
+    set bl [llength [split $b ":"]]
+
+    if {$al < $bl} {
+	return -1
+    } elseif {$al > $bl} {
+	return 1
+    }
+    return 0
+}
+	    
+if {[catch {open ${etc_dir}/udev/rules.d/91-whitelist.rules "w"} udev_fd] == 0} {
+
+    # default
+    puts $udev_fd "ACTION==\"add\", SUBSYSTEM==\"block\", TAG=\"disable\""
+    puts $udev_fd "ACTION==\"add\", KERNEL==\"lp*\", ENV{ID_TYPE}==\"printer\", TAG=\"enable\""
+	
+    # секция block
+    puts $udev_fd ""
+    puts $udev_fd "# секция block"
+    foreach block_dev [lsort -command block_cmp [array names block_list]] {
+
+	set dev_attrs [split $block_dev ":"]
+
+	if {[llength $dev_attrs] >= 2} {
+
+	    set driver [lindex $dev_attrs 0]
+	    set type   [lindex $dev_attrs 1]
+	    set tag    $block_list($block_dev)
+
+	    set udev_rule "ACTION==\"add\", SUBSYSTEM==\"block\", DRIVERS==\"$driver\", ENV{ID_TYPE}==\"$type\""
+
+	    if {[llength $dev_attrs] >= 3} {
+		set partition [lindex $dev_attrs 2]
+		set udev_rule "${udev_rule}, ATTR{partition}==\"$partition\""
+	    }
+
+	    set udev_rule "${udev_rule}, TAG=\"$tag\""
+	    #puts $udev_fd "ACTION==\"add\", SUBSYSTEM==\"block\", DRIVERS==\"$driver\", ENV{ID_TYPE}==\"$type\", TAG=\"$tag\""
+
+	    puts $udev_fd $udev_rule
+	}
+    }
+    
+    # секция lp
+    puts $udev_fd ""
+    puts $udev_fd "# секция lp"
+    foreach lp_dev [array names lp_list] {
+	
+	set dev_attrs [split $lp_dev ":"]
+	
+	if {[llength $dev_attrs] == 2} {
+	    
+	    set driver [lindex $dev_attrs 0]
+	    set type   [lindex $dev_attrs 1]
+	    set tag    $lp_list($lp_dev)
+
+	    puts $udev_fd "ACTION==\"add\", KERNEL==\"lp*\", DRIVERS==\"$driver\", ENV{ID_TYPE}==\"$type\", TAG=\"$tag\""
+	}
+    }
+
+    # секция vendor
+    puts $udev_fd ""
+    puts $udev_fd "# секция vendor"
+    foreach vendor_dev [lsort -command block_cmp [array names vendor_list]] {
+
+	set dev_attrs [split $vendor_dev ":"]
+
+	if {[llength $dev_attrs] >= 2} {
+
+	    set vendor  [lindex $dev_attrs 0]
+	    set product [lindex $dev_attrs 1]
+	    set tag     $vendor_list($vendor_dev)
+
+	    set udev_rule "ACTION==\"add\", ATTRS{idVendor}==\"$vendor\", ATTRS{idProduct}==\"$product\""
+
+	    if {[llength $dev_attrs] >= 3} {
+		set partition [lindex $dev_attrs 2]
+		set udev_rule "${udev_rule}, ATTR{partition}==\"$partition\""
+	    }
+
+	    set udev_rule "${udev_rule}, TAG=\"$tag\""
+	    #puts $udev_fd "ACTION==\"add\", SUBSYSTEM==\"block\", DRIVERS==\"$driver\", ENV{ID_TYPE}==\"$type\", TAG=\"$tag\""
+
+	    puts $udev_fd $udev_rule
+	}
+    }
+
+    # секция serial
+    puts $udev_fd ""
+    puts $udev_fd "# секция serial"
+    foreach serial_dev [lsort -command block_cmp [array names serial_list]] {
+	
+	set dev_attrs [split $serial_dev ":"]
+
+	if {[llength $dev_attrs] >= 1} {
+
+	    set serial [lindex $dev_attrs 0]
+	    set tag $serial_list($serial_dev)
+
+	    set udev_rule "ACTION==\"add\", ATTRS{serial}==\"$serial\""
+
+	    if {[llength $dev_attrs] >= 2} {
+		set partition [lindex $dev_attrs 1]
+		set udev_rule "${udev_rule}, ATTR{partition}==\"$partition\""
+	    }
+	    
+	    set udev_rule "${udev_rule}, TAG=\"$tag\""
+	    #puts $udev_fd "ACTION==\"add\", ATTRS{serial}==\"$serial_dev\", TAG=\"$tag\""
+
+	    puts $udev_fd $udev_rule
+	}
+
+    }
+        
+    close $udev_fd
+}
+
+exit 0

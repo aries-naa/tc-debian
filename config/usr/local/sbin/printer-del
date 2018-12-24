@@ -1,0 +1,15 @@
+#!/usr/bin/awk -f
+#!!!
+
+#
+#  cat printcap | ./printer-del -v to_delete=/dev/usb/lp1
+#
+
+BEGIN {
+  FS          = ":";
+}
+
+{
+    printer_dev = $2;
+    if (printer_dev != "lp=" to_delete) print $0;
+}

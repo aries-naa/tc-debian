@@ -1,0 +1,29 @@
+#!/bin/sh
+
+# 0 - смонтировалось, 4 - уже смонтировано.
+
+DEV=sdc
+
+pmount ${DEV}2
+mount_result=$?
+if [ "$mount_result" = "0" -o "$mount_result" = "4" ] ; then
+
+    if [ -f /media/${DEV}2/usr/bin/mksquashfs ]; then
+	ftype=`file -b --mime-type /media/${DEV}2/usr/bin/mksquashfs`
+	if [ "$ftype" != "text/x-python" ]; then
+	    sudo mv /media/${DEV}2/usr/bin/mksquashfs /media/${DEV}2/usr/bin/mksquashfs.bin
+	    sudo cp mksquashfs /media/${DEV}2/usr/bin
+	fi
+    fi
+    
+    if [ -f /media/${DEV}2/sbin/kexec ]; then
+	ftype=`file -b --mime-type /media/${DEV}2/sbin/kexec`
+	if [ "$ftype" != "text/x-python" ]; then
+	sudo mv /media/${DEV}2/sbin/kexec /media/${DEV}2/sbin/kexec.bin
+	sudo cp kexec /media/${DEV}2/sbin
+	fi
+    fi
+    
+fi
+
+pumount ${DEV}2

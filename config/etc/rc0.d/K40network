@@ -1,0 +1,18 @@
+#!/bin/sh
+
+echo ... stop configuring network ...
+
+killall udhcpc
+
+for iface_dir in /run/network/*; do
+    if [ -f $iface_dir/dhcp ]; then
+        iface=$(basename $iface_dir)
+        udhcpc -i $iface -R -S -q -t 15 -n
+        ifconfig $iface 0 down
+	rm -rf $iface_dir
+    fi
+done
+
+ifconfig lo down
+
+rm -rf /run/network/*

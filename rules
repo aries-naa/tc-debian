@@ -1,0 +1,2165 @@
+#!/bin/sh
+
+config () {
+    root=./tc
+    #kversion=3.2.0-4-486
+    kversion=3.2.65-tc
+    image_name="debian-"`date "+%Y%m%d"`
+    
+    PATH=$PATH:/sbin:/usr/sbin
+}
+
+build_image () {
+    mkdir build
+    sudo debootstrap --keep-debootstrap-dir --no-check-gpg --variant=minbase \
+	 --components "main,contrib,non-free,annex" \
+	 --include="linux-image-${kversion},linux-headers-${kversion},busybox,locales,acpid,udev,\
+         acpi-support-base,cifs-utils,ethtool,net-tools,dropbear,zlib1g,ntfs-3g,\
+         alsa-utils,libstdc++6,libgcc1,libccid,pcscd,ttf-freefont,libxinerama1,\
+         xserver-xorg-video-geode,x11-common,x11-xkb-utils,xkb-data,xserver-common,\
+         xserver-xorg,xserver-xorg-core,xinit,x11-xserver-utils,icaclient-term,\
+         tk8.5,tclthread,xvt,rdesktop,unionfs-fuse,rdate,shipka-kc2-dkms,shipka-kc3-dkms" \
+	 wheezy $root http://localhost:8080/
+#	 wheezy $root http://s75ocs01.chel.cbr.ru/debian/
+    
+    sudo chroot tc dkms install shipka-kc2/0.9.12 -k ${kversion}
+    sudo chroot tc dkms install shipka-kc3/0.9.12 -k ${kversion}
+    
+    # user
+    sudo chroot tc useradd -d /root -g users -p user -s /bin/sh user
+    sudo chroot tc usermod -d /root -s /bin/sh root
+    
+    # подготовка к удалению пакетов - чтоб без зависимостей и т.д.
+    sudo rm \
+	 tc/var/lib/dpkg/info/*.postrm \
+	 tc/var/lib/dpkg/info/*.postinst \
+	 tc/var/lib/dpkg/info/*.prerm
+
+    # удаление пакетов
+    if true; then
+	sudo chroot tc \
+	     dpkg --purge --force-all \
+	     adduser apt bash bsdutils coreutils cpio dash debian-archive-keyring \
+	     debconf debianutils diffutils e2fslibs e2fsprogs findutils \
+	     gcc-4.4-base gcc-4.6-base gcc-4.7-base gnupg gpgv grep gzip hostname \
+	     initscripts initramfs-tools insserv iproute klibc-utils libacl1 \
+	     libapt-pkg4.12 libattr1 libcomerr2 libdb5.1 libgomp1 whiptail \
+	     libdbus-1-3 libffi5 libgnutls26 libquadmath0 libitm1 alsa-oss kmod \
+	     libkeyutils1 libklibc libk5crypto3 libkrb5-3 libkrb5support0 \
+	     liblocale-gettext-perl liblzma5 libmount1 libncurses5 libncursesw5 \
+	     libnih-dbus1 libnih1 libp11-kit0 libpam-modules libpam-modules-bin \
+	     libpam-runtime libpam0g libprocps0 libreadline6 libsemanage1 \
+	     libsemanage-common libslang2 libss2 libtalloc2 libtasn1-3 \
+	     libtext-charwidth-perl libtext-iconv-perl libtext-wrapi18n-perl \
+	     libtinfo5 libusb-0.1-4 libustr-1.0-1 libuuid-perl libblkid1 \
+	     libwbclient0 libkmod2 libxp6 login lsb-base makedev mawk mount \
+	     mountall multiarch-support ncurses-bin passwd perl-base plymouth \
+	     procps readline-common sed sensible-utils sysvinit-utils sysvinit tar \
+	     tzdata gcc gcc-4.7 binutils make module-init-tools patch dkms \
+	     shipka-kc2-dkms shipka-kc3-dkms cpp cpp-4.7 cpp-4.6 gcc-4.6 \
+	     xserver-xorg-video-all \
+	     xserver-xorg-video-voodoo \
+	     xserver-xorg-video-tseng \
+	     xserver-xorg-video-trident \
+	     xserver-xorg-video-tdfx \
+	     xserver-xorg-video-sisusb \
+	     xserver-xorg-video-sis \
+	     xserver-xorg-video-siliconmotion \
+	     xserver-xorg-video-savage \
+	     xserver-xorg-video-s3virge \
+	     xserver-xorg-video-s3 \
+	     xserver-xorg-video-rendition \
+	     xserver-xorg-video-r128 \
+	     xserver-xorg-video-neomagic \
+	     xserver-xorg-video-chips \
+	     xserver-xorg-video-ark \
+	     xserver-xorg-video-apm \
+	     xserver-xorg-video-i128 \
+	     xserver-xorg-video-i740 \
+	     xserver-xorg-video-mach64 \
+	     xserver-xorg-video-mga \
+	     xserver-xorg-input-all \
+	     xserver-xorg-input-mouse \
+	     xserver-xorg-input-synaptics \
+	     xserver-xorg-input-vmmouse \
+	     ucf xz-utils \
+	     fontconfig iceweasel libatk1.0-0:i386 libatk1.0-data \
+	     libavahi-client3 libavahi-common3 libavahi-common-data \
+	     libcairo2 libcups2 libdatrie1 libdbus-glib-1-2 libevent-2.0-5 \
+	     libgdk-pixbuf2.0-0 libgdk-pixbuf2.0-common libglib2.0-0 \
+	     libgssapi-krb5-2 libgtk2.0-0 libgtk2.0-common libhunspell-1.3-0 \
+	     libjasper1 libjbig0 libpango1.0-0 libpcre3 libperl5.14 \
+	     libsqlite3-0 libstartup-notification0 libthai0 \
+	     libthai-data libtiff4 libxcb-render0 libxcb-shm0 libxcomposite1 \
+	     libxdamage1 libxml2 ncurses-term rxvt-unicode-256color shared-mime-info
+    fi
+
+    # список пакетов
+    sudo chroot tc dpkg -l > dpkg.info
+    
+    ## шипка
+    sudo ln -sf ../lib/ICAClient/wfica.bin tc/usr/bin/wfica
+    sudo ln -sf ../lib/ICAClient/util/pnabrowse tc/usr/bin/pnabrowse
+    
+    # locale-gen
+    sudo localedef -f UTF-8 -i tc-config/en_US -c tc/usr/lib/locale/en_US.UTF-8
+    sudo chroot tc localedef --add-to-archive /usr/lib/locale/en_US.UTF-8
+    sudo rm -rf tc/usr/share/X11/locale/en_US.UTF-8
+    sudo ln -sf C tc/usr/share/X11/locale/en_US.UTF-8
+    
+    # Ядро
+    sudo cp -ar tc/boot/vmlinuz-$kversion build/vmlinuz
+    sudo rm -rf tc/boot tc/debootstrap tc/vmlinuz tc/initrd.img
+    sudo rm -rf tc/lib/modules/$kversion/modules.*
+    sudo ln -sf /tmp/.modules.alias   tc/lib/modules/$kversion/modules.alias
+    sudo ln -sf /tmp/.modules.dep     tc/lib/modules/$kversion/modules.dep
+    sudo ln -sf /tmp/.modules.symbols tc/lib/modules/$kversion/modules.symbols
+
+    # localtime link timezone
+    sudo mkdir -p tc/usr/share/zoneinfo/
+    sudo ln -sf /etc/localtime tc/usr/share/zoneinfo/localtime
+    
+    # lp spool
+    sudo mkdir -p tc/var/spool/lpd
+    sudo chown root:users tc/var/spool/lpd
+    sudo chmod g+rwx tc/var/spool/lpd
+    
+    # точка монтирования конфигурации
+    sudo mkdir -p tc/mnt/config
+    
+    # Финальная зачистка каталогов.
+    if true; then
+	sudo rm -rf \
+	     tc/etc/adduser.conf \
+	     tc/etc/apt \
+	     tc/etc/bash_completion.d \
+	     tc/etc/bindresvport.blacklist \
+	     tc/etc/cron.daily \
+	     tc/etc/cron.weekly \
+	     tc/etc/debconf.conf \
+	     tc/etc/debian_version \
+	     tc/etc/dropbear/* \
+	     tc/etc/default \
+	     tc/etc/deluser.conf \
+	     tc/etc/dhcp \
+	     tc/etc/dhcp3 \
+	     tc/etc/environment \
+	     tc/etc/esound \
+	     tc/etc/fonts \
+	     tc/etc/fstab \
+	     tc/etc/fstab.d \
+	     tc/etc/fuse.conf \
+	     tc/etc/gai.conf \
+	     tc/etc/group- \
+	     tc/etc/gshadow \
+	     tc/etc/gshadow- \
+	     tc/etc/host.conf \
+	     tc/etc/hosts \
+	     tc/etc/hosts.allow \
+	     tc/etc/hosts.deny \
+	     tc/etc/init \
+	     tc/etc/init.d/.* \
+	     tc/etc/init.d/.* \
+	     tc/etc/init.d/acpid \
+	     tc/etc/init.d/acpid \
+	     tc/etc/init.d/alsa-utils \
+	     tc/etc/init.d/b* \
+	     tc/etc/init.d/b* \
+	     tc/etc/init.d/c* \
+	     tc/etc/init.d/c* \
+	     tc/etc/init.d/console-setup \
+	     tc/etc/init.d/console-setup \
+	     tc/etc/init.d/dropbear \
+	     tc/etc/init.d/dropbear \
+	     tc/etc/init.d/h* \
+	     tc/etc/init.d/h* \
+	     tc/etc/init.d/k* \
+	     tc/etc/init.d/k* \
+	     tc/etc/init.d/keyboard-setup \
+	     tc/etc/init.d/keyboard-setup \
+	     tc/etc/init.d/lpd \
+	     tc/etc/init.d/lpd \
+	     tc/etc/init.d/m* \
+	     tc/etc/init.d/m* \
+	     tc/etc/init.d/module-init-tools \
+	     tc/etc/init.d/module-init-tools \
+	     tc/etc/init.d/networking \
+	     tc/etc/init.d/networking \
+	     tc/etc/init.d/p* \
+	     tc/etc/init.d/rc.local \
+	     tc/etc/init.d/rc.local \
+	     tc/etc/init.d/rcS \
+	     tc/etc/init.d/README \
+	     tc/etc/init.d/README \
+	     tc/etc/init.d/reboot \
+	     tc/etc/init.d/reboot \
+	     tc/etc/init.d/rmnologin \
+	     tc/etc/init.d/rmnologin \
+	     tc/etc/init.d/s* \
+	     tc/etc/init.d/s* \
+	     tc/etc/init.d/u* \
+	     tc/etc/init.d/u* \
+	     tc/etc/init.d/udev \
+	     tc/etc/init.d/udev \
+	     tc/etc/init.d/udev-mtab \
+	     tc/etc/init.d/udev-mtab \
+	     tc/etc/init.d/x11-common \
+	     tc/etc/init.d/x11-common \
+	     tc/etc/initramfs-tools \
+	     tc/etc/inputrc \
+	     tc/etc/issue \
+	     tc/etc/issue.net \
+	     tc/etc/kernel \
+	     tc/etc/libaudit.conf \
+	     tc/etc/locale.alias \
+	     tc/etc/locale.gen \
+	     tc/etc/logcheck \
+	     tc/etc/logrotate.d \
+	     tc/etc/menu-methods \
+	     tc/etc/modules \
+	     tc/etc/motd \
+	     tc/etc/motd* \
+	     tc/etc/network \
+	     tc/etc/networks \
+	     tc/etc/nologin \
+	     tc/etc/opt \
+	     tc/etc/os-release \
+	     tc/etc/pam.conf \
+	     tc/etc/pam.d \
+	     tc/etc/passwd- \
+	     tc/etc/profile \
+	     tc/etc/profile.d \
+	     tc/etc/protocols \
+	     tc/etc/.pwd.lock \
+	     tc/etc/rc0.d/* \
+	     tc/etc/rc0.d/* \
+	     tc/etc/rc1.d \
+	     tc/etc/rc1.d \
+	     tc/etc/rc2.d \
+	     tc/etc/rc2.d/* \
+	     tc/etc/rc3.d \
+	     tc/etc/rc3.d \
+	     tc/etc/rc4.d \
+	     tc/etc/rc4.d \
+	     tc/etc/rc5.d \
+	     tc/etc/rc5.d \
+	     tc/etc/rc6.d \
+	     tc/etc/rc6.d/* \
+	     tc/etc/rcS.d/* \
+	     tc/etc/rcS.d/* \
+	     tc/etc/request-key.d \
+	     tc/etc/rpc \
+	     tc/etc/samba \
+	     tc/etc/security \
+	     tc/etc/selinux \
+	     tc/etc/shadow \
+	     tc/etc/shadow- \
+	     tc/etc/shells \
+	     tc/etc/skel \
+	     tc/etc/staff-group-for-usr-local \
+	     tc/etc/sysctl.conf \
+	     tc/etc/sysctl.d \
+	     tc/etc/systemd \
+	     tc/etc/terminfo \
+	     tc/etc/ts.conf \
+	     tc/etc/X11/Xsession.d \
+	     tc/usr/games \
+	     tc/usr/share/aclocal \
+	     tc/usr/share/acpi-support \
+	     tc/usr/share/adduser \
+	     tc/usr/share/alsa/alsa.conf.d \
+	     tc/usr/share/alsa/init \
+	     tc/usr/share/alsa/smixer.conf \
+	     tc/usr/share/alsa/sndo-mixer.alisp \
+	     tc/usr/share/alsa/speaker-test \
+	     tc/usr/share/alsa/utils.sh \
+	     tc/usr/share/applications \
+	     tc/usr/share/apport \
+	     tc/usr/share/aptitude \
+	     tc/usr/share/base-files \
+	     tc/usr/share/base-passwd \
+	     tc/usr/share/bug \
+	     tc/usr/share/common-licenses \
+	     tc/usr/share/console-setup \
+	     tc/usr/share/debconf \
+	     tc/usr/share/debianutils \
+	     tc/usr/share/dict \
+	     tc/usr/share/doc \
+	     tc/usr/share/doc-base \
+	     tc/usr/share/hal \
+	     tc/usr/share/i18n \
+	     tc/usr/share/info \
+	     tc/usr/share/initramfs-tools \
+	     tc/usr/share/libc-bin \
+	     tc/usr/share/lintian \
+	     tc/usr/share/locale \
+	     tc/usr/share/man \
+	     tc/usr/share/menu \
+	     tc/usr/share/mime \
+	     tc/usr/share/misc \
+	     tc/usr/share/pam \
+	     tc/usr/share/pam-configs \
+	     tc/usr/share/perl5 \
+	     tc/usr/share/pixmaps \
+	     tc/usr/share/pkgconfig \
+	     tc/usr/share/plymouth \
+	     tc/usr/share/pyshared \
+	     tc/usr/share/rdesktop/keymaps/a* \
+	     tc/usr/share/rdesktop/keymaps/cs \
+	     tc/usr/share/rdesktop/keymaps/d* \
+	     tc/usr/share/rdesktop/keymaps/en-dv \
+	     tc/usr/share/rdesktop/keymaps/en-gb \
+	     tc/usr/share/rdesktop/keymaps/es \
+	     tc/usr/share/rdesktop/keymaps/et \
+	     tc/usr/share/rdesktop/keymaps/f* \
+	     tc/usr/share/rdesktop/keymaps/h* \
+	     tc/usr/share/rdesktop/keymaps/i* \
+	     tc/usr/share/rdesktop/keymaps/j* \
+	     tc/usr/share/rdesktop/keymaps/k* \
+	     tc/usr/share/rdesktop/keymaps/l* \
+	     tc/usr/share/rdesktop/keymaps/mk \
+	     tc/usr/share/rdesktop/keymaps/n* \
+	     tc/usr/share/rdesktop/keymaps/p* \
+	     tc/usr/share/rdesktop/keymaps/r* \
+	     tc/usr/share/rdesktop/keymaps/s* \
+	     tc/usr/share/rdesktop/keymaps/t* \
+	     tc/usr/share/samba \
+	     tc/usr/share/sounds \
+	     tc/usr/share/sysvinit \
+	     tc/usr/share/sysv-rc \
+	     tc/usr/share/tcltk/tcl8 \
+	     tc/usr/share/X11/locale/am_ET.UTF-8 \
+	     tc/usr/share/X11/locale/armscii-8 \
+	     tc/usr/share/X11/locale/el_GR.UTF-8 \
+	     tc/usr/share/X11/locale/fi_FI.UTF-8 \
+	     tc/usr/share/X11/locale/georgian-academy \
+	     tc/usr/share/X11/locale/georgian-ps \
+	     tc/usr/share/X11/locale/ibm-cp1133 \
+	     tc/usr/share/X11/locale/iscii-dev \
+	     tc/usr/share/X11/locale/isiri-3342 \
+	     tc/usr/share/X11/locale/iso8859-1 \
+	     tc/usr/share/X11/locale/iso8859-10 \
+	     tc/usr/share/X11/locale/iso8859-11 \
+	     tc/usr/share/X11/locale/iso8859-13 \
+	     tc/usr/share/X11/locale/iso8859-14 \
+	     tc/usr/share/X11/locale/iso8859-15 \
+	     tc/usr/share/X11/locale/iso8859-2 \
+	     tc/usr/share/X11/locale/iso8859-3 \
+	     tc/usr/share/X11/locale/iso8859-4 \
+	     tc/usr/share/X11/locale/iso8859-5 \
+	     tc/usr/share/X11/locale/iso8859-6 \
+	     tc/usr/share/X11/locale/iso8859-7 \
+	     tc/usr/share/X11/locale/iso8859-8 \
+	     tc/usr/share/X11/locale/iso8859-9 \
+	     tc/usr/share/X11/locale/iso8859-9e \
+	     tc/usr/share/X11/locale/ja \
+	     tc/usr/share/X11/locale/ja.JIS \
+	     tc/usr/share/X11/locale/ja_JP.UTF-8 \
+	     tc/usr/share/X11/locale/ja.S90 \
+	     tc/usr/share/X11/locale/ja.SJIS \
+	     tc/usr/share/X11/locale/ja.U90 \
+	     tc/usr/share/X11/locale/ko \
+	     tc/usr/share/X11/locale/koi8-c \
+	     tc/usr/share/X11/locale/koi8-r \
+	     tc/usr/share/X11/locale/koi8-u \
+	     tc/usr/share/X11/locale/ko_KR.UTF-8 \
+	     tc/usr/share/X11/locale/microsoft-cp1251 \
+	     tc/usr/share/X11/locale/microsoft-cp1255 \
+	     tc/usr/share/X11/locale/microsoft-cp1256 \
+	     tc/usr/share/X11/locale/mulelao-1 \
+	     tc/usr/share/X11/locale/nokhchi-1 \
+	     tc/usr/share/X11/locale/pt_BR.UTF-8 \
+	     tc/usr/share/X11/locale/ru_RU.UTF-8 \
+	     tc/usr/share/X11/locale/tatar-cyr \
+	     tc/usr/share/X11/locale/th_TH \
+	     tc/usr/share/X11/locale/th_TH.UTF-8 \
+	     tc/usr/share/X11/locale/tscii-0 \
+	     tc/usr/share/X11/locale/vi_VN.tcvn \
+	     tc/usr/share/X11/locale/vi_VN.viscii \
+	     tc/usr/share/X11/locale/zh_CN \
+	     tc/usr/share/X11/locale/zh_CN.gb18030 \
+	     tc/usr/share/X11/locale/zh_CN.gbk \
+	     tc/usr/share/X11/locale/zh_CN.UTF-8 \
+	     tc/usr/share/X11/locale/zh_HK.big5 \
+	     tc/usr/share/X11/locale/zh_HK.big5hkscs \
+	     tc/usr/share/X11/locale/zh_HK.UTF-8 \
+	     tc/usr/share/X11/locale/zh_TW \
+	     tc/usr/share/X11/locale/zh_TW.big5 \
+	     tc/usr/share/X11/locale/zh_TW.UTF-8 \
+	     tc/usr/share/X11/XErrorDB \
+	     tc/usr/share/X11/xkb/compat/japan \
+	     tc/usr/share/X11/xkb/compat/keypad \
+	     tc/usr/share/X11/xkb/compat/norepeat \
+	     tc/usr/share/X11/xkb/compat/olpc \
+	     tc/usr/share/X11/xkb/compat/pc \
+	     tc/usr/share/X11/xkb/compat/pc98 \
+	     tc/usr/share/X11/xkb/compat/README \
+	     tc/usr/share/X11/xkb/compat/xtest \
+	     tc/usr/share/X11/xkb/geometry/amiga \
+	     tc/usr/share/X11/xkb/geometry/ataritt \
+	     tc/usr/share/X11/xkb/geometry/chicony \
+	     tc/usr/share/X11/xkb/geometry/dell \
+	     tc/usr/share/X11/xkb/geometry/digital_vndr \
+	     tc/usr/share/X11/xkb/geometry/everex \
+	     tc/usr/share/X11/xkb/geometry/fujitsu \
+	     tc/usr/share/X11/xkb/geometry/hhk \
+	     tc/usr/share/X11/xkb/geometry/hp \
+	     tc/usr/share/X11/xkb/geometry/keytronic \
+	     tc/usr/share/X11/xkb/geometry/kinesis \
+	     tc/usr/share/X11/xkb/geometry/macintosh \
+	     tc/usr/share/X11/xkb/geometry/microsoft \
+	     tc/usr/share/X11/xkb/geometry/nec \
+	     tc/usr/share/X11/xkb/geometry/nokia \
+	     tc/usr/share/X11/xkb/geometry/northgate \
+	     tc/usr/share/X11/xkb/geometry/README \
+	     tc/usr/share/X11/xkb/geometry/sgi_vndr \
+	     tc/usr/share/X11/xkb/geometry/sony \
+	     tc/usr/share/X11/xkb/geometry/sun \
+	     tc/usr/share/X11/xkb/geometry/thinkpad \
+	     tc/usr/share/X11/xkb/geometry/typematrix \
+	     tc/usr/share/X11/xkb/geometry/winbook \
+	     tc/usr/share/X11/xkb/keycodes/amiga \
+	     tc/usr/share/X11/xkb/keycodes/ataritt \
+	     tc/usr/share/X11/xkb/keycodes/digital_vndr \
+	     tc/usr/share/X11/xkb/keycodes/fujitsu \
+	     tc/usr/share/X11/xkb/keycodes/hp \
+	     tc/usr/share/X11/xkb/keycodes/ibm \
+	     tc/usr/share/X11/xkb/keycodes/macintosh \
+	     tc/usr/share/X11/xkb/keycodes/README \
+	     tc/usr/share/X11/xkb/keycodes/sgi_vndr \
+	     tc/usr/share/X11/xkb/keycodes/sony \
+	     tc/usr/share/X11/xkb/keycodes/sun \
+	     tc/usr/share/X11/xkb/keycodes/xfree98 \
+	     tc/usr/share/X11/xkb/keymap/amiga \
+	     tc/usr/share/X11/xkb/keymap/ataritt \
+	     tc/usr/share/X11/xkb/keymap/digital_vndr \
+	     tc/usr/share/X11/xkb/keymap/macintosh \
+	     tc/usr/share/X11/xkb/keymap/README \
+	     tc/usr/share/X11/xkb/keymap/sgi_vndr \
+	     tc/usr/share/X11/xkb/keymap/sony \
+	     tc/usr/share/X11/xkb/keymap/sun_vndr \
+	     tc/usr/share/X11/xkb/keymap/xfree98 \
+	     tc/usr/share/X11/xkb/rules/base.extras.xml \
+	     tc/usr/share/X11/xkb/rules/base.lst \
+	     tc/usr/share/X11/xkb/rules/base.xml \
+	     tc/usr/share/X11/xkb/rules/evdev.extras.xml \
+	     tc/usr/share/X11/xkb/rules/evdev.lst \
+	     tc/usr/share/X11/xkb/rules/evdev.xml \
+	     tc/usr/share/X11/xkb/rules/README \
+	     tc/usr/share/X11/xkb/rules/xfree86 \
+	     tc/usr/share/X11/xkb/rules/xfree86.lst \
+	     tc/usr/share/X11/xkb/rules/xfree86.xml \
+	     tc/usr/share/X11/xkb/rules/xfree98 \
+	     tc/usr/share/X11/xkb/rules/xkb.dtd \
+	     tc/usr/share/X11/xkb/rules/xorg \
+	     tc/usr/share/X11/xkb/rules/xorg.lst \
+	     tc/usr/share/X11/xkb/rules/xorg.xml \
+	     tc/usr/share/X11/xkb/symbols/ad \
+	     tc/usr/share/X11/xkb/symbols/af \
+	     tc/usr/share/X11/xkb/symbols/al \
+	     tc/usr/share/X11/xkb/symbols/am \
+	     tc/usr/share/X11/xkb/symbols/ara \
+	     tc/usr/share/X11/xkb/symbols/az \
+	     tc/usr/share/X11/xkb/symbols/b* \
+	     tc/usr/share/X11/xkb/symbols/ca \
+	     tc/usr/share/X11/xkb/symbols/cd \
+	     tc/usr/share/X11/xkb/symbols/ch \
+	     tc/usr/share/X11/xkb/symbols/cn \
+	     tc/usr/share/X11/xkb/symbols/cz \
+	     tc/usr/share/X11/xkb/symbols/de \
+	     tc/usr/share/X11/xkb/symbols/digital_vndr \
+	     tc/usr/share/X11/xkb/symbols/dk \
+	     tc/usr/share/X11/xkb/symbols/ee \
+	     tc/usr/share/X11/xkb/symbols/epo \
+	     tc/usr/share/X11/xkb/symbols/es \
+	     tc/usr/share/X11/xkb/symbols/et \
+	     tc/usr/share/X11/xkb/symbols/extras \
+	     tc/usr/share/X11/xkb/symbols/f* \
+	     tc/usr/share/X11/xkb/symbols/fujitsu_vndr \
+	     tc/usr/share/X11/xkb/symbols/gb \
+	     tc/usr/share/X11/xkb/symbols/ge \
+	     tc/usr/share/X11/xkb/symbols/gh \
+	     tc/usr/share/X11/xkb/symbols/gn \
+	     tc/usr/share/X11/xkb/symbols/gr \
+	     tc/usr/share/X11/xkb/symbols/h* \
+	     tc/usr/share/X11/xkb/symbols/hp_vndr \
+	     tc/usr/share/X11/xkb/symbols/ie \
+	     tc/usr/share/X11/xkb/symbols/il \
+	     tc/usr/share/X11/xkb/symbols/in \
+	     tc/usr/share/X11/xkb/symbols/iq \
+	     tc/usr/share/X11/xkb/symbols/ir \
+	     tc/usr/share/X11/xkb/symbols/is \
+	     tc/usr/share/X11/xkb/symbols/it \
+	     tc/usr/share/X11/xkb/symbols/jp \
+	     tc/usr/share/X11/xkb/symbols/kg \
+	     tc/usr/share/X11/xkb/symbols/kh \
+	     tc/usr/share/X11/xkb/symbols/kr \
+	     tc/usr/share/X11/xkb/symbols/kz \
+	     tc/usr/share/X11/xkb/symbols/la \
+	     tc/usr/share/X11/xkb/symbols/lk \
+	     tc/usr/share/X11/xkb/symbols/lt \
+	     tc/usr/share/X11/xkb/symbols/lv \
+	     tc/usr/share/X11/xkb/symbols/m* \
+	     tc/usr/share/X11/xkb/symbols/macintosh_vndr \
+	     tc/usr/share/X11/xkb/symbols/nec_vndr \
+	     tc/usr/share/X11/xkb/symbols/ng \
+	     tc/usr/share/X11/xkb/symbols/nl \
+	     tc/usr/share/X11/xkb/symbols/no \
+	     tc/usr/share/X11/xkb/symbols/nokia_vndr \
+	     tc/usr/share/X11/xkb/symbols/np \
+	     tc/usr/share/X11/xkb/symbols/pk \
+	     tc/usr/share/X11/xkb/symbols/pl \
+	     tc/usr/share/X11/xkb/symbols/pt \
+	     tc/usr/share/X11/xkb/symbols/r* \
+	     tc/usr/share/X11/xkb/symbols/se \
+	     tc/usr/share/X11/xkb/symbols/sgi_vndr \
+	     tc/usr/share/X11/xkb/symbols/si \
+	     tc/usr/share/X11/xkb/symbols/sk \
+	     tc/usr/share/X11/xkb/symbols/sn \
+	     tc/usr/share/X11/xkb/symbols/sony_vndr \
+	     tc/usr/share/X11/xkb/symbols/sun_vndr \
+	     tc/usr/share/X11/xkb/symbols/sy \
+	     tc/usr/share/X11/xkb/symbols/th \
+	     tc/usr/share/X11/xkb/symbols/tj \
+	     tc/usr/share/X11/xkb/symbols/tm \
+	     tc/usr/share/X11/xkb/symbols/tr \
+	     tc/usr/share/X11/xkb/symbols/ua \
+	     tc/usr/share/X11/xkb/symbols/uz \
+	     tc/usr/share/X11/xkb/symbols/vn \
+	     tc/usr/share/X11/xkb/symbols/xfree68_vndr \
+	     tc/usr/share/X11/xkb/symbols/za \
+	     tc/usr/share/X11/xkb/types/cancel \
+	     tc/usr/share/X11/xkb/types/caps \
+	     tc/usr/share/X11/xkb/types/nokia \
+	     tc/usr/share/X11/xkb/types/README \
+	     tc/usr/share/xserver-xorg \
+	     tc/usr/share/xsessions \
+	     tc/usr/share/zoneinfo/Africa \
+	     tc/usr/share/zoneinfo/America \
+	     tc/usr/share/zoneinfo/Antarctica \
+	     tc/usr/share/zoneinfo/Arctic \
+	     tc/usr/share/zoneinfo/Asia \
+	     tc/usr/share/zoneinfo/Atlantic \
+	     tc/usr/share/zoneinfo/Australia \
+	     tc/usr/share/zoneinfo/Brazil \
+	     tc/usr/share/zoneinfo/Canada \
+	     tc/usr/share/zoneinfo/CET \
+	     tc/usr/share/zoneinfo/Chile \
+	     tc/usr/share/zoneinfo/CST6CDT \
+	     tc/usr/share/zoneinfo/Cuba \
+	     tc/usr/share/zoneinfo/EET \
+	     tc/usr/share/zoneinfo/Egypt \
+	     tc/usr/share/zoneinfo/Eire \
+	     tc/usr/share/zoneinfo/EST \
+	     tc/usr/share/zoneinfo/EST5EDT \
+	     tc/usr/share/zoneinfo/Etc \
+	     tc/usr/share/zoneinfo/Europe \
+	     tc/usr/share/zoneinfo/Factory \
+	     tc/usr/share/zoneinfo/GB \
+	     tc/usr/share/zoneinfo/GB-Eire \
+	     tc/usr/share/zoneinfo/Greenwich \
+	     tc/usr/share/zoneinfo/Hongkong \
+	     tc/usr/share/zoneinfo/HST \
+	     tc/usr/share/zoneinfo/Iceland \
+	     tc/usr/share/zoneinfo/Indian \
+	     tc/usr/share/zoneinfo/Iran \
+	     tc/usr/share/zoneinfo/iso3166.tab \
+	     tc/usr/share/zoneinfo/Israel \
+	     tc/usr/share/zoneinfo/Jamaica \
+	     tc/usr/share/zoneinfo/Japan \
+	     tc/usr/share/zoneinfo/Kwajalein \
+	     tc/usr/share/zoneinfo/Libya \
+	     tc/usr/share/zoneinfo/MET \
+	     tc/usr/share/zoneinfo/Mexico \
+	     tc/usr/share/zoneinfo/Mideast \
+	     tc/usr/share/zoneinfo/MST \
+	     tc/usr/share/zoneinfo/MST7MDT \
+	     tc/usr/share/zoneinfo/Navajo \
+	     tc/usr/share/zoneinfo/NZ \
+	     tc/usr/share/zoneinfo/NZ-CHAT \
+	     tc/usr/share/zoneinfo/Pacific \
+	     tc/usr/share/zoneinfo/Poland \
+	     tc/usr/share/zoneinfo/Portugal \
+	     tc/usr/share/zoneinfo/posix \
+	     tc/usr/share/zoneinfo/PRC \
+	     tc/usr/share/zoneinfo/PST8PDT \
+	     tc/usr/share/zoneinfo/right \
+	     tc/usr/share/zoneinfo/ROC \
+	     tc/usr/share/zoneinfo/ROK \
+	     tc/usr/share/zoneinfo/Singapore \
+	     tc/usr/share/zoneinfo/SystemV \
+	     tc/usr/share/zoneinfo/Turkey \
+	     tc/usr/share/zoneinfo/UCT \
+	     tc/usr/share/zoneinfo/US \
+	     tc/usr/share/zoneinfo/WET \
+	     tc/usr/share/zoneinfo/W-SU \
+	     tc/usr/share/zoneinfo/zone.tab \
+	     tc/usr/share/zoneinfo/Zulu \
+	     tc/var/backups \
+	     tc/var/cache/apt \
+	     tc/var/cache/debconf \
+	     tc/var/cache/fontconfig \
+	     tc/var/cache/ldconfig \
+	     tc/var/cache/samba \
+	     tc/var/lib/apt \
+	     tc/var/lib/initramfs-tools \
+	     tc/var/lib/insserv \
+	     tc/var/lib/libuuid \
+	     tc/var/lib/misc \
+	     tc/var/lib/pam \
+	     tc/var/lib/samba \
+	     tc/var/lib/ucf \
+	     tc/var/lib/update-rc.d \
+	     tc/var/lib/urandom \
+	     tc/var/lib/x11 \
+	     tc/var/lib/xfonts \
+	     tc/var/lib/xkb \
+	     tc/var/lib/dkms \
+	     tc/var/local \
+	     tc/var/lock/* \
+	     tc/var/log/* \
+	     tc/var/mail \
+	     tc/var/opt \
+	     tc/var/spool/mail \
+	     tc/bin/dmesg \
+	     tc/bin/fusermount \
+	     tc/bin/kill \
+	     tc/bin/lowntfs-3g \
+	     tc/bin/lsblk \
+	     tc/bin/more \
+	     tc/bin/mt \
+	     tc/bin/mt-gnu \
+	     tc/bin/netstat \
+	     tc/bin/ntfs-3g.* \
+	     tc/bin/ntfsc* \
+	     tc/bin/ntfsd* \
+	     tc/bin/ntfsfix \
+	     tc/bin/ntfsinfo \
+	     tc/bin/ntfsls \
+	     tc/bin/ntfsm* \
+	     tc/bin/ntfstruncate \
+	     tc/bin/ntfswipe \
+	     tc/bin/ps \
+	     tc/bin/run-parts \
+	     tc/bin/sh.distrib \
+	     tc/bin/tailf \
+	     tc/bin/tempfile \
+	     tc/bin/ulockmgr_server \
+	     tc/bin/vmmouse_detect \
+	     tc/bin/which \
+	     tc/etc/alternatives \
+	     tc/lib/cpp \
+	     tc/lib/firmware/* \
+	     tc/lib/i386-linux-gnu/libanl* \
+	     tc/lib/i386-linux-gnu/libBrokenLocale* \
+	     tc/lib/i386-linux-gnu/libcidn* \
+	     tc/lib/i386-linux-gnu/libcidn-2.11.3.so \
+	     tc/lib/i386-linux-gnu/libcidn.so.1 \
+	     tc/lib/i386-linux-gnu/liblzma* \
+	     tc/lib/i386-linux-gnu/libmemusage.so \
+	     tc/lib/i386-linux-gnu/libnsl* \
+	     tc/lib/i386-linux-gnu/libnss_compat* \
+	     tc/lib/i386-linux-gnu/libnss_compat-2.11.3.so \
+	     tc/lib/i386-linux-gnu/libnss_compat.so.2 \
+	     tc/lib/i386-linux-gnu/libnss_hesiod* \
+	     tc/lib/i386-linux-gnu/libnss_hesiod-2.11.3.so \
+	     tc/lib/i386-linux-gnu/libnss_hesiod.so.2 \
+	     tc/lib/i386-linux-gnu/libnss_nis* \
+	     tc/lib/i386-linux-gnu/libnss_nis-2.11.3.so \
+	     tc/lib/i386-linux-gnu/libnss_nisplus-2.11.3.so \
+	     tc/lib/i386-linux-gnu/libnss_nisplus.so.2 \
+	     tc/lib/i386-linux-gnu/libnss_nis.so.2 \
+	     tc/lib/i386-linux-gnu/libpcprofile.so \
+	     tc/lib/i386-linux-gnu/libpopt* \
+	     tc/lib/i386-linux-gnu/libSegFault.so \
+	     tc/lib/i386-linux-gnu/libthread_db* \
+	     tc/lib/i386-linux-gnu/libulockmgr* \
+	     tc/lib/i386-linux-gnu/libusb-0.1.so.4 \
+	     tc/lib/i386-linux-gnu/libusb-0.1.so.4.4.4 \
+	     tc/lib/init \
+	     tc/lib/libauparse.so.0 \
+	     tc/lib/libauparse.so.0.0.0 \
+	     tc/lib/libtic.so.5 \
+	     tc/lib/libtic.so.5.7 \
+	     tc/lib/modprobe.d \
+	     tc/lib/systemd \
+	     tc/lib/terminfo/a \
+	     tc/lib/terminfo/c \
+	     tc/lib/terminfo/E \
+	     tc/lib/terminfo/h \
+	     tc/lib/terminfo/m \
+	     tc/lib/terminfo/p \
+	     tc/lib/terminfo/s \
+	     tc/lib/terminfo/w \
+	     tc/usr/lib/tcltk/thread2.6.7/libthread2.6.7-aolserver.so \
+	     tc/usr/lib/tcltk/thread2.6.7/ttrace.tcl \
+	     tc/run/motd.dynamic \
+	     tc/run/samba \
+	     tc/run/sendsigs.omit.d \
+	     tc/run/shm \
+	     tc/run/utmp \
+	     tc/sbin/agetty \
+	     tc/sbin/blkid \
+	     tc/sbin/blockdev \
+	     tc/sbin/cfdisk \
+	     tc/sbin/ctrlaltdel \
+	     tc/sbin/fdisk \
+	     tc/sbin/findfs \
+	     tc/sbin/fsck \
+	     tc/sbin/fsck.cramfs \
+	     tc/sbin/fsck.minix \
+	     tc/sbin/fsfreeze \
+	     tc/sbin/fstrim \
+	     tc/sbin/getty \
+	     tc/sbin/ip* \
+	     tc/sbin/isosize \
+	     tc/sbin/ldconfig \
+	     tc/sbin/MAKEDEV \
+	     tc/sbin/mkfs \
+	     tc/sbin/mkfs.bfs \
+	     tc/sbin/mkfs.cramfs \
+	     tc/sbin/mkfs.minix \
+	     tc/sbin/mkfs.ntfs \
+	     tc/sbin/mkhomedir_helper \
+	     tc/sbin/mkntfs \
+	     tc/sbin/mkswap \
+	     tc/sbin/mntctl \
+	     tc/sbin/mountall \
+	     tc/sbin/mount.fuse \
+	     tc/sbin/mount.lowntfs-3g \
+	     tc/sbin/mount.ntfs \
+	     tc/sbin/mount.ntfs-3g \
+	     tc/sbin/nameif \
+	     tc/sbin/ntfsclone \
+	     tc/sbin/ntfscp \
+	     tc/sbin/ntfslabel \
+	     tc/sbin/ntfsresize \
+	     tc/sbin/ntfsundelete \
+	     tc/sbin/pam_tally \
+	     tc/sbin/pam_tally2 \
+	     tc/sbin/pivot_root \
+	     tc/sbin/plipconfig \
+	     tc/sbin/plymouthd \
+	     tc/sbin/rarp \
+	     tc/sbin/raw \
+	     tc/sbin/runlevel \
+	     tc/sbin/sfdisk \
+	     tc/sbin/slattach \
+	     tc/sbin/swaplabel \
+	     tc/sbin/switch_root \
+	     tc/sbin/sysctl \
+	     tc/sbin/unix_chkpwd \
+	     tc/sbin/unix_update \
+	     tc/sbin/wipefs \
+	     tc/usr/bin/aconnect \
+	     tc/usr/bin/addpart \
+	     tc/usr/bin/alsaloop \
+	     tc/usr/bin/alsamixer \
+	     tc/usr/bin/alsaucm \
+	     tc/usr/bin/amidi \
+	     tc/usr/bin/aplay \
+	     tc/usr/bin/aplaymidi \
+	     tc/usr/bin/appres \
+	     tc/usr/bin/arecord \
+	     tc/usr/bin/arecordmidi \
+	     tc/usr/bin/aseqdump \
+	     tc/usr/bin/aseqnet \
+	     tc/usr/bin/bdf* \
+	     tc/usr/bin/catchsegv \
+	     tc/usr/bin/chkdupexe \
+	     tc/usr/bin/chrt \
+	     tc/usr/bin/cifscreds \
+	     tc/usr/bin/cpp* \
+	     tc/usr/bin/c89 \
+	     tc/usr/bin/c99 \
+	     tc/usr/bin/cc \
+	     tc/usr/bin/cvt \
+	     tc/usr/bin/ddate \
+	     tc/usr/bin/debconf* \
+	     tc/usr/bin/delpart \
+	     tc/usr/bin/dexconf \
+	     tc/usr/bin/editres \
+	     tc/usr/bin/fallocate \
+	     tc/usr/bin/fonttosfnt \
+	     tc/usr/bin/fusermount \
+	     tc/usr/bin/getcifsacl \
+	     tc/usr/bin/getconf \
+	     tc/usr/bin/getent \
+	     tc/usr/bin/getopt \
+	     tc/usr/bin/grf \
+	     tc/usr/bin/gtf \
+	     tc/usr/bin/i386 \
+	     tc/usr/bin/i486* \
+	     tc/usr/bin/iceauth \
+	     tc/usr/bin/iconv \
+	     tc/usr/bin/iecset \
+	     tc/usr/bin/ionice \
+	     tc/usr/bin/ipcmk \
+	     tc/usr/bin/ipcrm \
+	     tc/usr/bin/ipcs \
+	     tc/usr/bin/kill \
+	     tc/usr/bin/koi8rxterm \
+	     tc/usr/bin/ldd \
+	     tc/usr/bin/line \
+	     tc/usr/bin/linux32 \
+	     tc/usr/bin/linux64 \
+	     tc/usr/bin/linux-version \
+	     tc/usr/bin/listres \
+	     tc/usr/bin/locale \
+	     tc/usr/bin/localedef \
+	     tc/usr/bin/lowntfs-3g \
+	     tc/usr/bin/lpq \
+	     tc/usr/bin/lprm \
+	     tc/usr/bin/lptest \
+	     tc/usr/bin/lsblk \
+	     tc/usr/bin/lscpu \
+	     tc/usr/bin/lsinitramfs \
+	     tc/usr/bin/luit \
+	     tc/usr/bin/lxterm \
+	     tc/usr/bin/lz* \
+	     tc/usr/bin/mcookie \
+	     tc/usr/bin/mkf* \
+	     tc/usr/bin/namei \
+	     tc/usr/bin/ntfs-3g.* \
+	     tc/usr/bin/ntfs-3g.probe \
+	     tc/usr/bin/ntfs-3g.secaudit \
+	     tc/usr/bin/ntfs-3g.usermap \
+	     tc/usr/bin/ntfscat \
+	     tc/usr/bin/ntfsck \
+	     tc/usr/bin/ntfscluster \
+	     tc/usr/bin/ntfscmp \
+	     tc/usr/bin/ntfsdump_logfile \
+	     tc/usr/bin/ntfsfix \
+	     tc/usr/bin/ntfsinfo \
+	     tc/usr/bin/ntfsls \
+	     tc/usr/bin/ntfsmftalloc \
+	     tc/usr/bin/ntfsmove \
+	     tc/usr/bin/ntfstruncate \
+	     tc/usr/bin/ntfswipe \
+	     tc/usr/bin/partx \
+	     tc/usr/bin/perf \
+	     tc/usr/bin/pg \
+	     tc/usr/bin/plymouth \
+	     tc/usr/bin/pmount-hal \
+	     tc/usr/bin/ps \
+	     tc/usr/bin/rename.ul \
+	     tc/usr/bin/resize \
+	     tc/usr/bin/rev \
+	     tc/usr/bin/rpcinfo \
+	     tc/usr/bin/savelog \
+	     tc/usr/bin/sessreg \
+	     tc/usr/bin/setarch \
+	     tc/usr/bin/setcifsacl \
+	     tc/usr/bin/setsid \
+	     tc/usr/bin/setterm \
+	     tc/usr/bin/setxkbmap \
+	     tc/usr/bin/showrgb \
+	     tc/usr/bin/speaker-test \
+	     tc/usr/bin/startx \
+	     tc/usr/bin/synclient \
+	     tc/usr/bin/syndaemon \
+	     tc/usr/bin/taskset \
+	     tc/usr/bin/tzselect \
+	     tc/usr/bin/ucs2any \
+	     tc/usr/bin/ulockmgr_server \
+	     tc/usr/bin/unlzma \
+	     tc/usr/bin/unshare \
+	     tc/usr/bin/update-alternatives \
+	     tc/usr/bin/uxterm \
+	     tc/usr/bin/viewres \
+	     tc/usr/bin/vmwarectrl \
+	     tc/usr/bin/w \
+	     tc/usr/bin/wfcmgr \
+	     tc/usr/bin/wfica_assoc.sh \
+	     tc/usr/bin/wfica.sh \
+	     tc/usr/bin/whereis \
+	     tc/usr/bin/x86_64 \
+	     tc/usr/bin/xcmsdb \
+	     tc/usr/bin/xdpyinfo \
+	     tc/usr/bin/xdriinfo \
+	     tc/usr/bin/xfd \
+	     tc/usr/bin/xfontsel \
+	     tc/usr/bin/xgamma \
+	     tc/usr/bin/xhost \
+	     tc/usr/bin/xkbbell \
+	     tc/usr/bin/xkbevd \
+	     tc/usr/bin/xkbprint \
+	     tc/usr/bin/xkbvleds \
+	     tc/usr/bin/xkbwatch \
+	     tc/usr/bin/xkeystone \
+	     tc/usr/bin/xkill \
+	     tc/usr/bin/xlito \
+	     tc/usr/bin/xlsatoms \
+	     tc/usr/bin/xlsclients \
+	     tc/usr/bin/xlsfonts \
+	     tc/usr/bin/xmessage \
+	     tc/usr/bin/xmodmap \
+	     tc/usr/bin/xprop \
+	     tc/usr/bin/xrdb \
+	     tc/usr/bin/xrefresh \
+	     tc/usr/bin/x-session-manager \
+	     tc/usr/bin/xsetmode \
+	     tc/usr/bin/xsetpointer \
+	     tc/usr/bin/xsetroot \
+	     tc/usr/bin/xsetwacom \
+	     tc/usr/bin/xstdcmap \
+	     tc/usr/bin/x-terminal-emulator \
+	     tc/usr/bin/xvidtune \
+	     tc/usr/bin/xvinfo \
+	     tc/usr/bin/x-window-manager \
+	     tc/usr/bin/x-www-browser \
+	     tc/usr/bin/gnome-www-browser \
+	     tc/usr/bin/xwininfo \
+	     tc/usr/bin/zdump \
+	     tc/usr/include \
+	     tc/usr/lib/ConsoleKit \
+	     tc/usr/lib/gcc \
+	     tc/usr/lib/linux-kbuild* \
+	     tc/usr/lib/i386-linux-gnu/gconv/ANSI_X3.110.so \
+	     tc/usr/lib/i386-linux-gnu/gconv/ARMSCII-8.so \
+	     tc/usr/lib/i386-linux-gnu/gconv/ASMO_449.so \
+	     tc/usr/lib/i386-linux-gnu/gconv/BIG*.so \
+	     tc/usr/lib/i386-linux-gnu/gconv/BRF.so \
+	     tc/usr/lib/i386-linux-gnu/gconv/CP10007.so \
+	     tc/usr/lib/i386-linux-gnu/gconv/CP1125.so \
+	     tc/usr/lib/i386-linux-gnu/gconv/CP1250.so \
+	     tc/usr/lib/i386-linux-gnu/gconv/CP1252.so \
+	     tc/usr/lib/i386-linux-gnu/gconv/CP1253.so \
+	     tc/usr/lib/i386-linux-gnu/gconv/CP1254.so \
+	     tc/usr/lib/i386-linux-gnu/gconv/CP1255.so \
+	     tc/usr/lib/i386-linux-gnu/gconv/CP1256.so \
+	     tc/usr/lib/i386-linux-gnu/gconv/CP1257.so \
+	     tc/usr/lib/i386-linux-gnu/gconv/CP1258.so \
+	     tc/usr/lib/i386-linux-gnu/gconv/CP737.so \
+	     tc/usr/lib/i386-linux-gnu/gconv/CP775.so \
+	     tc/usr/lib/i386-linux-gnu/gconv/CP932.so \
+	     tc/usr/lib/i386-linux-gnu/gconv/CSN_369103.so \
+	     tc/usr/lib/i386-linux-gnu/gconv/CWI.so \
+	     tc/usr/lib/i386-linux-gnu/gconv/DEC-MCS.so \
+	     tc/usr/lib/i386-linux-gnu/gconv/EBCDIC*.so \
+	     tc/usr/lib/i386-linux-gnu/gconv/ECMA-CYRILLIC.so \
+	     tc/usr/lib/i386-linux-gnu/gconv/EUC*.so \
+	     tc/usr/lib/i386-linux-gnu/gconv/GB*.so \
+	     tc/usr/lib/i386-linux-gnu/gconv/GEORGIAN*.so \
+	     tc/usr/lib/i386-linux-gnu/gconv/GOST_19768-74.so \
+	     tc/usr/lib/i386-linux-gnu/gconv/GREEK*.so \
+	     tc/usr/lib/i386-linux-gnu/gconv/HP*.so \
+	     tc/usr/lib/i386-linux-gnu/gconv/IBM*.so \
+	     tc/usr/lib/i386-linux-gnu/gconv/IEC_P27-1.so \
+	     tc/usr/lib/i386-linux-gnu/gconv/INIS*.so \
+	     tc/usr/lib/i386-linux-gnu/gconv/ISIRI-3342.so \
+	     tc/usr/lib/i386-linux-gnu/gconv/ISO646.so \
+	     tc/usr/lib/i386-linux-gnu/gconv/ISO8859-10.so \
+	     tc/usr/lib/i386-linux-gnu/gconv/ISO8859-11.so \
+	     tc/usr/lib/i386-linux-gnu/gconv/ISO8859-13.so \
+	     tc/usr/lib/i386-linux-gnu/gconv/ISO8859-14.so \
+	     tc/usr/lib/i386-linux-gnu/gconv/ISO8859-15.so \
+	     tc/usr/lib/i386-linux-gnu/gconv/ISO8859-16.so \
+	     tc/usr/lib/i386-linux-gnu/gconv/ISO8859-2.so \
+	     tc/usr/lib/i386-linux-gnu/gconv/ISO8859-3.so \
+	     tc/usr/lib/i386-linux-gnu/gconv/ISO8859-4.so \
+	     tc/usr/lib/i386-linux-gnu/gconv/ISO8859-5.so \
+	     tc/usr/lib/i386-linux-gnu/gconv/ISO8859-6.so \
+	     tc/usr/lib/i386-linux-gnu/gconv/ISO8859-7.so \
+	     tc/usr/lib/i386-linux-gnu/gconv/ISO8859-8.so \
+	     tc/usr/lib/i386-linux-gnu/gconv/ISO8859-9E.so \
+	     tc/usr/lib/i386-linux-gnu/gconv/ISO8859-9.so \
+	     tc/media
+    fi
+
+    if true; then
+	sudo rm -rfv \
+	     tc/usr/lib/i386-linux-gnu/gconv/ISO_*.so \
+	     tc/usr/lib/i386-linux-gnu/gconv/ISO-*.so \
+	     tc/usr/lib/i386-linux-gnu/gconv/JOHAB.so \
+	     tc/usr/lib/i386-linux-gnu/gconv/KOI*.so \
+	     tc/usr/lib/i386-linux-gnu/gconv/LATIN*.so \
+	     tc/usr/lib/i386-linux-gnu/gconv/lib*.so \
+	     tc/usr/lib/i386-linux-gnu/gconv/MAC*.so \
+	     tc/usr/lib/i386-linux-gnu/gconv/MIK.so \
+	     tc/usr/lib/i386-linux-gnu/gconv/NATS*.so \
+	     tc/usr/lib/i386-linux-gnu/gconv/PT154.so \
+	     tc/usr/lib/i386-linux-gnu/gconv/RK1048.so \
+	     tc/usr/lib/i386-linux-gnu/gconv/SAMI-WS2.so \
+	     tc/usr/lib/i386-linux-gnu/gconv/SHIFT_JISX0213.so \
+	     tc/usr/lib/i386-linux-gnu/gconv/SJIS.so \
+	     tc/usr/lib/i386-linux-gnu/gconv/T.61.so \
+	     tc/usr/lib/i386-linux-gnu/gconv/TCVN5712-1.so \
+	     tc/usr/lib/i386-linux-gnu/gconv/TIS-620.so \
+	     tc/usr/lib/i386-linux-gnu/gconv/TSCII.so \
+	     tc/usr/lib/i386-linux-gnu/gconv/UHC.so \
+	     tc/usr/lib/i386-linux-gnu/gconv/UTF-32.so \
+	     tc/usr/lib/i386-linux-gnu/gconv/UTF-7.so \
+	     tc/usr/lib/i386-linux-gnu/gconv/VISCII.so \
+	     tc/usr/lib/i386-linux-gnu/i586 \
+	     tc/usr/lib/i386-linux-gnu/i686 \
+	     tc/usr/lib/i386-linux-gnu/krb5 \
+	     tc/usr/lib/i386-linux-gnu/openssl-1.0.0 \
+	     tc/usr/lib/i386-linux-gnu/libGL.* \
+	     tc/usr/lib/i386-linux-gnu/libglapi* \
+	     tc/usr/lib/i386-linux-gnu/libmpc* \
+	     tc/usr/lib/i386-linux-gnu/libmpfr* \
+	     tc/usr/lib/i386-linux-gnu/libmtdev* \
+	     tc/usr/lib/i386-linux-gnu/libnewt* \
+	     tc/usr/lib/i386-linux-gnu/libsamplerate* \
+	     tc/usr/lib/i386-linux-gnu/libssl* \
+	     tc/usr/lib/i386-linux-gnu/libxcb-* \
+	     tc/usr/lib/i386-linux-gnu/gdk-pixbuf-2.0 \
+	     tc/usr/lib/i386-linux-gnu/gtk-2.0 \
+	     tc/usr/lib/krb5 \
+	     tc/usr/lib/libboost_iostreams* \
+	     tc/usr/lib/libept* \
+	     tc/usr/lib/libgmp.* \
+	     tc/usr/lib/libk* \
+	     tc/usr/lib/libmpfr.* \
+	     tc/usr/lib/libtalloc.* \
+	     tc/usr/lib/libusb-0.1.so.4 \
+	     tc/usr/lib/libXp.so.6 \
+	     tc/usr/lib/libXp.so.6.2.0 \
+	     tc/usr/lib/locale/C.UTF-8 \
+	     tc/usr/lib/locale/en_US.UTF-8 \
+	     tc/usr/lib/jwm \
+	     tc/usr/lib/mime \
+	     tc/usr/lib/mozilla \
+	     tc/usr/lib/pcsc/drivers/serial \
+	     tc/usr/lib/perl5 \
+	     tc/usr/lib/pkgconfig \
+	     tc/usr/lib/pt_chown \
+	     tc/usr/lib/python2.4 \
+	     tc/usr/lib/python2.5 \
+	     tc/usr/lib/python2.6 \
+	     tc/usr/lib/utempter \
+	     tc/usr/lib/X11 \
+	     tc/usr/lib/xorg/modules/multimedia \
+	     tc/usr/lib/xorg/protocol.txt \
+	     tc/usr/local/etc \
+	     tc/usr/local/games \
+	     tc/usr/local/include \
+	     tc/usr/local/lib \
+	     tc/usr/local/man \
+	     tc/usr/local/sbin \
+	     tc/usr/local/share \
+	     tc/usr/local/src \
+	     tc/usr/sbin/addgroup \
+	     tc/usr/sbin/add-shell \
+	     tc/usr/sbin/adduser \
+	     tc/usr/sbin/arp \
+	     tc/usr/sbin/cifs.idmap \
+	     tc/usr/sbin/cifs.upcall \
+	     tc/usr/sbin/cytune \
+	     tc/usr/sbin/delgroup \
+	     tc/usr/sbin/deluser \
+	     tc/usr/sbin/fdformat \
+	     tc/usr/sbin/iconvconfig \
+	     tc/usr/sbin/install-info \
+	     tc/usr/sbin/invoke-rc.d \
+	     tc/usr/sbin/ldattach \
+	     tc/usr/sbin/locale-gen \
+	     tc/usr/sbin/lpc \
+	     tc/usr/sbin/lpf \
+	     tc/usr/sbin/mkinitramfs \
+	     tc/usr/sbin/mkinitramfs-kpkg \
+	     tc/usr/sbin/pac \
+	     tc/usr/sbin/pam-auth-update \
+	     tc/usr/sbin/pam_getenv \
+	     tc/usr/sbin/plymouth-set-default-theme \
+	     tc/usr/sbin/ramsize \
+	     tc/usr/sbin/rdev \
+	     tc/usr/sbin/readprofile \
+	     tc/usr/sbin/remove-shell \
+	     tc/usr/sbin/rmt \
+	     tc/usr/sbin/rootflags \
+	     tc/usr/sbin/rtcwake \
+	     tc/usr/sbin/setvesablank \
+	     tc/usr/sbin/tunelp \
+	     tc/usr/sbin/update-* \
+	     tc/usr/sbin/update-alternatives \
+	     tc/usr/sbin/update-passwd \
+	     tc/usr/sbin/update-rc.d \
+	     tc/usr/sbin/validlocale \
+	     tc/usr/sbin/vcstime \
+	     tc/usr/sbin/vidmode \
+	     tc/usr/sbin/writevt \
+	     tc/usr/sbin/zic \
+	     tc/usr/share/fonts/X11/75dpi/c* \
+	     tc/usr/share/fonts/X11/75dpi/helvB0* \
+	     tc/usr/share/fonts/X11/75dpi/helvB1* \
+	     tc/usr/share/fonts/X11/75dpi/helvBO* \
+	     tc/usr/share/fonts/X11/75dpi/helvO* \
+	     tc/usr/share/fonts/X11/75dpi/helvR0* \
+	     tc/usr/share/fonts/X11/75dpi/helvR10c_c.pcf.gz \
+	     tc/usr/share/fonts/X11/75dpi/helvR12c_c.pcf.gz \
+	     tc/usr/share/fonts/X11/75dpi/helvR24c_c.pcf.gz \
+	     tc/usr/share/fonts/X11/75dpi/l* \
+	     tc/usr/share/fonts/X11/75dpi/t* \
+	     tc/usr/share/fonts/X11/misc/12* \
+	     tc/usr/share/fonts/X11/misc/5* \
+	     tc/usr/share/fonts/X11/misc/6* \
+	     tc/usr/share/fonts/X11/misc/7* \
+	     tc/usr/share/fonts/X11/misc/8* \
+	     tc/usr/share/fonts/X11/misc/9* \
+	     tc/usr/share/fonts/X11/misc/n* \
+	     tc/usr/share/fonts/X11/encodings \
+	     tc/usr/share/fonts/X11/util \
+	     tc/usr/share/fonts/truetype/ttf-dejavu \
+	     tc/usr/share/fonts/truetype/freefont/FreeMo* \
+	     tc/usr/share/fonts/truetype/freefont/FreeSe* \
+	     tc/usr/share/fonts/truetype/freefont/FreeSans?*.ttf \
+	     tc/usr/share/hal \
+	     tc/usr/share/tcltk/tcl8.5/encoding \
+	     tc/usr/share/tcltk/tcl8.5/http1.0 \
+	     tc/usr/share/tcltk/tcl8.5/msgs \
+	     tc/usr/share/tcltk/tcl8.5/opt0.4 \
+	     tc/usr/share/tcltk/tcl8.5/tcl8/p* \
+	     tc/usr/share/tcltk/tcl8.5/tcl8/h* \
+	     tc/usr/share/tcltk/tcl8.5/tcl8/t* \
+	     tc/usr/share/tcltk/tk8 \
+	     tc/usr/share/tcltk/tk8.5/demos \
+	     tc/usr/share/tcltk/tk8.5/images \
+	     tc/usr/share/tcltk/tk8.5/msgs \
+	     tc/usr/src \
+	     tc/etc/dropbear/log \
+	     tc/etc/dropbear/run \
+	     tc/etc/localtime \
+	     tc/etc/X11/app-defaults \
+	     tc/etc/X11/fonts \
+	     tc/etc/X11/xinit \
+	     tc/etc/X11/xkb \
+	     tc/etc/X11/Xreset \
+	     tc/etc/X11/Xreset.d \
+	     tc/etc/X11/Xresources \
+	     tc/etc/X11/Xsession* \
+	     tc/home \
+	     tc/initrd.img.old \
+	     tc/opt \
+	     tc/root \
+	     tc/sbin/installkernel \
+	     tc/sbin/mkfs.ntfs \
+	     tc/sbin/mkntfs \
+	     tc/sbin/modinfo \
+	     tc/sbin/mount.lowntfs-3g \
+	     tc/sbin/mount.ntfs \
+	     tc/sbin/mount.ntfs-3g \
+	     tc/sbin/ntfs* \
+	     tc/sbin/runlevel \
+	     tc/sbin/start-stop-daemon \
+	     tc/selinux \
+	     tc/srv \
+	     tc/tmp/mkinitram* \
+	     tc/tmp/dkms* \
+	     tc/usr/bin/acpi_listen \
+	     tc/usr/bin/dbclient \
+	     tc/usr/bin/dropbearkey \
+	     tc/usr/bin/lessecho \
+	     tc/usr/bin/lessfile \
+	     tc/usr/bin/lesskey \
+	     tc/usr/bin/lesspipe \
+	     tc/usr/bin/ntfsdecrypt \
+	     tc/usr/bin/pager \
+	     tc/usr/bin/rclock \
+	     tc/usr/bin/rxvt \
+	     tc/usr/bin/rxvt-xpm \
+	     tc/usr/bin/which \
+	     tc/usr/lib/dropbear \
+	     tc/usr/lib/i386-linux-gnu/libapt-pkg* \
+	     tc/usr/lib/i386-linux-gnu/libdb* \
+	     tc/usr/lib/i386-linux-gnu/libform* \
+	     tc/usr/lib/i386-linux-gnu/libgmp* \
+	     tc/usr/lib/i386-linux-gnu/libXcomposite* \
+	     tc/usr/lib/klibc/bin/cat \
+	     tc/usr/lib/klibc/bin/chroot \
+	     tc/usr/lib/klibc/bin/cpio \
+	     tc/usr/lib/klibc/bin/dd \
+	     tc/usr/lib/klibc/bin/dmesg \
+	     tc/usr/lib/klibc/bin/false \
+	     tc/usr/lib/klibc/bin/fstype \
+	     tc/usr/lib/klibc/bin/gunzip \
+	     tc/usr/lib/klibc/bin/gzip \
+	     tc/usr/lib/klibc/bin/halt \
+	     tc/usr/lib/klibc/bin/insmod \
+	     tc/usr/lib/klibc/bin/kill \
+	     tc/usr/lib/klibc/bin/kinit \
+	     tc/usr/lib/klibc/bin/kinit.shared \
+	     tc/usr/lib/klibc/bin/ln \
+	     tc/usr/lib/klibc/bin/losetup \
+	     tc/usr/lib/klibc/bin/ls \
+	     tc/usr/lib/klibc/bin/minips \
+	     tc/usr/lib/klibc/bin/mkdir \
+	     tc/usr/lib/klibc/bin/mkfifo \
+	     tc/usr/lib/klibc/bin/mknod \
+	     tc/usr/lib/klibc/bin/mount \
+	     tc/usr/lib/klibc/bin/nfsmount \
+	     tc/usr/lib/klibc/bin/nuke \
+	     tc/usr/lib/klibc/bin/pivot_root \
+	     tc/usr/lib/klibc/bin/poweroff \
+	     tc/usr/lib/klibc/bin/readlink \
+	     tc/usr/lib/klibc/bin/reboot \
+	     tc/usr/lib/klibc/bin/resume \
+	     tc/usr/lib/klibc/bin/run-init \
+	     tc/usr/lib/klibc/bin/sh.shared \
+	     tc/usr/lib/klibc/bin/sleep \
+	     tc/usr/lib/klibc/bin/sync \
+	     tc/usr/lib/klibc/bin/true \
+	     tc/usr/lib/klibc/bin/umount \
+	     tc/usr/lib/klibc/bin/uname \
+	     tc/usr/lib/klibc/bin/zcat \
+	     tc/usr/lib/libform.* \
+	     tc/usr/lib/libgnutls* \
+	     tc/usr/lib/libI810XvMC* \
+	     tc/usr/lib/libIntelXvMC* \
+	     tc/usr/lib/libmenu.* \
+	     tc/usr/lib/libpanel.* \
+	     tc/usr/lib/libtasn1* \
+	     tc/usr/local \
+	     tc/vmlinuz.old \
+	     tc/usr/lib/ICAClient/desktop \
+	     tc/usr/lib/ICAClient/help \
+	     tc/usr/lib/ICAClient/keystore \
+	     tc/usr/lib/ICAClient/pkginf \
+	     tc/usr/lib/ICAClient/NDS.DLL \
+	     tc/usr/lib/ICAClient/Npica.ad \
+	     tc/usr/lib/ICAClient/Npica \
+	     tc/usr/lib/ICAClient/TW1.DLL \
+	     tc/usr/lib/ICAClient/VDHSSPI.DLL \
+	     tc/usr/lib/ICAClient/VDMM.DLL \
+	     tc/usr/lib/ICAClient/VDMSSPI.DLL \
+	     tc/usr/lib/ICAClient/VDSCARD.DLL \
+	     tc/usr/lib/ICAClient/VDSPMIKE.DLL \
+	     tc/usr/lib/ICAClient/VORBIS.DLL \
+	     tc/usr/lib/ICAClient/changelog.txt \
+	     tc/usr/lib/ICAClient/ctxipc \
+	     tc/usr/lib/ICAClient/eula.txt \
+	     tc/usr/lib/ICAClient/install.txt \
+	     tc/usr/lib/ICAClient/libctxipcPd.so \
+	     tc/usr/lib/ICAClient/libctxssl.so \
+	     tc/usr/lib/ICAClient/npica.so \
+	     tc/usr/lib/ICAClient/readme.txt \
+	     tc/usr/lib/ICAClient/wfcmgr \
+	     tc/usr/lib/ICAClient/wfica \
+	     tc/usr/lib/ICAClient/keyboard/ag* \
+	     tc/usr/lib/ICAClient/keyboard/d* \
+	     tc/usr/lib/ICAClient/keyboard/h* \
+	     tc/usr/lib/ICAClient/keyboard/i* \
+	     tc/usr/lib/ICAClient/keyboard/l* \
+	     tc/usr/lib/ICAClient/keyboard/m* \
+	     tc/usr/lib/ICAClient/keyboard/n* \
+	     tc/usr/lib/ICAClient/keyboard/s* \
+	     tc/usr/lib/ICAClient/keyboard/t* \
+	     tc/usr/lib/ICAClient/nls/de \
+	     tc/usr/lib/ICAClient/nls/ja \
+	     tc/usr/lib/ICAClient/nls/en/Npica.ad \
+	     tc/usr/lib/ICAClient/nls/en/Npica \
+	     tc/usr/lib/ICAClient/nls/en/Wfcmgr \
+	     tc/usr/lib/ICAClient/nls/en/XCapture \
+	     tc/usr/lib/ICAClient/nls/en/XCapture.ad \
+	     tc/usr/lib/ICAClient/nls/en/eula.txt \
+	     tc/usr/lib/ICAClient/nls/en/index.htm \
+	     tc/usr/lib/ICAClient/util/echo_cmd \
+	     tc/usr/lib/ICAClient/util/gst_play \
+	     tc/usr/lib/ICAClient/util/hinst \
+	     tc/usr/lib/ICAClient/util/icalicense.sh \
+	     tc/usr/lib/ICAClient/util/libgstflatstm.so \
+	     tc/usr/lib/ICAClient/util/nslaunch \
+	     tc/usr/lib/ICAClient/util/pac.js \
+	     tc/usr/lib/ICAClient/util/pacexec \
+	     tc/usr/lib/ICAClient/util/sunraymac.sh \
+	     tc/usr/lib/ICAClient/util/what \
+	     tc/usr/lib/ICAClient/util/xcapture \
+	     tc/usr/lib/ICAClient/nls/en/UTF-8/Wfcmgr \
+	     tc/usr/lib/ICAClient/nls/en/UTF-8/XCapture \
+	     tc/usr/lib/ICAClient/nls/en/UTF-8/XCapture.ad \
+	     tc/usr/lib/ICAClient/nls/en/UTF-8/eula.txt
+    fi
+
+    # модули ядра
+    if true; then
+	sudo rm -rfv \
+	     tc/lib/modules/$kversion/kernel/arch \
+	     tc/lib/modules/$kversion/kernel/sound/firewire \
+	     tc/lib/modules/$kversion/kernel/sound/isa \
+	     tc/lib/modules/$kversion/kernel/sound/pcmcia \
+	     tc/lib/modules/$kversion/kernel/sound/synth \
+	     tc/lib/modules/$kversion/kernel/sound/usb \
+	     tc/lib/modules/$kversion/kernel/sound/usb/drivers \
+	     tc/lib/modules/$kversion/kernel/sound/usb/i2c \
+	     tc/lib/modules/$kversion/kernel/sound/core/snd-hrtimer.ko \
+	     tc/lib/modules/$kversion/kernel/sound/core/snd-rawmidi.ko \
+	     tc/lib/modules/$kversion/kernel/sound/pci/ali5451 \
+	     tc/lib/modules/$kversion/kernel/sound/pci/asihpi \
+	     tc/lib/modules/$kversion/kernel/sound/pci/au88x0 \
+	     tc/lib/modules/$kversion/kernel/sound/pci/ca0106 \
+	     tc/lib/modules/$kversion/kernel/sound/pci/cs46xx \
+	     tc/lib/modules/$kversion/kernel/sound/pci/ctxfi \
+	     tc/lib/modules/$kversion/kernel/sound/pci/echoaudio \
+	     tc/lib/modules/$kversion/kernel/sound/pci/emu10k1 \
+	     tc/lib/modules/$kversion/kernel/sound/pci/ice1712 \
+	     tc/lib/modules/$kversion/kernel/sound/pci/korg1212 \
+	     tc/lib/modules/$kversion/kernel/sound/pci/lola \
+	     tc/lib/modules/$kversion/kernel/sound/pci/lx6464es \
+	     tc/lib/modules/$kversion/kernel/sound/pci/mixart \
+	     tc/lib/modules/$kversion/kernel/sound/pci/nm256 \
+	     tc/lib/modules/$kversion/kernel/sound/pci/oxygen \
+	     tc/lib/modules/$kversion/kernel/sound/pci/pcxhr \
+	     tc/lib/modules/$kversion/kernel/sound/pci/riptide \
+	     tc/lib/modules/$kversion/kernel/sound/pci/rme9652 \
+	     tc/lib/modules/$kversion/kernel/sound/pci/trident \
+	     tc/lib/modules/$kversion/kernel/sound/pci/vx222 \
+	     tc/lib/modules/$kversion/kernel/sound/pci/ymfpci \
+	     tc/lib/modules/$kversion/kernel/sound/pci/snd-a* \
+	     tc/lib/modules/$kversion/kernel/sound/pci/snd-b* \
+	     tc/lib/modules/$kversion/kernel/sound/pci/snd-c* \
+	     tc/lib/modules/$kversion/kernel/sound/pci/snd-e* \
+	     tc/lib/modules/$kversion/kernel/sound/pci/snd-f* \
+	     tc/lib/modules/$kversion/kernel/sound/pci/snd-m* \
+	     tc/lib/modules/$kversion/kernel/sound/pci/snd-r* \
+	     tc/lib/modules/$kversion/kernel/sound/pci/snd-s* \
+	     tc/lib/modules/$kversion/kernel/block \
+	     tc/lib/modules/$kversion/kernel/drivers/acpi/ac* \
+	     tc/lib/modules/$kversion/kernel/drivers/acpi/battery.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/acpi/pci_slot.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/acpi/sb* \
+	     tc/lib/modules/$kversion/kernel/drivers/ata/ac* \
+	     tc/lib/modules/$kversion/kernel/drivers/ata/ah* \
+	     tc/lib/modules/$kversion/kernel/drivers/ata/libahci.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/ata/pata_al* \
+	     tc/lib/modules/$kversion/kernel/drivers/ata/pata_ar* \
+	     tc/lib/modules/$kversion/kernel/drivers/ata/pata_atp* \
+	     tc/lib/modules/$kversion/kernel/drivers/ata/pata_e* \
+	     tc/lib/modules/$kversion/kernel/drivers/ata/pata_h* \
+	     tc/lib/modules/$kversion/kernel/drivers/ata/pata_i* \
+	     tc/lib/modules/$kversion/kernel/drivers/ata/pata_j* \
+	     tc/lib/modules/$kversion/kernel/drivers/ata/pata_l* \
+	     tc/lib/modules/$kversion/kernel/drivers/ata/pata_m* \
+	     tc/lib/modules/$kversion/kernel/drivers/ata/pata_n* \
+	     tc/lib/modules/$kversion/kernel/drivers/ata/pata_o* \
+	     tc/lib/modules/$kversion/kernel/drivers/ata/pata_p* \
+	     tc/lib/modules/$kversion/kernel/drivers/ata/pata_r* \
+	     tc/lib/modules/$kversion/kernel/drivers/ata/pata_s* \
+	     tc/lib/modules/$kversion/kernel/drivers/ata/pata_t* \
+	     tc/lib/modules/$kversion/kernel/drivers/ata/sata_* \
+	     tc/lib/modules/$kversion/kernel/drivers/atm \
+	     tc/lib/modules/$kversion/kernel/drivers/auxdisplay \
+	     tc/lib/modules/$kversion/kernel/drivers/block/rbd.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/bluetooth \
+	     tc/lib/modules/$kversion/kernel/drivers/clocksource \
+	     tc/lib/modules/$kversion/kernel/drivers/char/ramoops.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/char/virtio_console.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/connector \
+	     tc/lib/modules/$kversion/kernel/drivers/cpufreq/cpufreq-* \
+	     tc/lib/modules/$kversion/kernel/drivers/cpufreq/gx-suspmod.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/cpufreq/long*\
+	     tc/lib/modules/$kversion/kernel/drivers/cpufreq/p* \
+	     tc/lib/modules/$kversion/kernel/drivers/cpufreq/s* \
+	     tc/lib/modules/$kversion/kernel/drivers/crypto/g* \
+	     tc/lib/modules/$kversion/kernel/drivers/crypto/h* \
+	     tc/lib/modules/$kversion/kernel/drivers/dca \
+	     tc/lib/modules/$kversion/kernel/drivers/dma \
+	     tc/lib/modules/$kversion/kernel/drivers/edac \
+	     tc/lib/modules/$kversion/kernel/drivers/hid/hid-*.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/input/gameport \
+	     tc/lib/modules/$kversion/kernel/drivers/input/joystick \
+	     tc/lib/modules/$kversion/kernel/drivers/input/keyboard \
+	     tc/lib/modules/$kversion/kernel/drivers/input/mouse/appletouch.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/input/mouse/bcm5974.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/input/mouse/gpio_mouse.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/input/mouse/inport.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/input/mouse/logibm.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/input/mouse/pc110pad.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/input/mouse/synaptics_i2c.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/input/mouse/vsxxxaa.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/input/mouse/synaptics_usb.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/input/serio/altera_ps2.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/input/serio/ct82c710.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/input/serio/pcips2.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/input/serio/parkbd.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/input/serio/serport.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/input/tablet \
+	     tc/lib/modules/$kversion/kernel/drivers/input/touchscreen \
+	     tc/lib/modules/$kversion/kernel/drivers/input/evbug.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/input/ff-memless.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/input/input-polldev.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/input/misc/a* \
+	     tc/lib/modules/$kversion/kernel/drivers/input/misc/c* \
+	     tc/lib/modules/$kversion/kernel/drivers/input/misc/k* \
+	     tc/lib/modules/$kversion/kernel/drivers/input/misc/pcf50633-input.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/input/misc/powermate.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/input/misc/u* \
+	     tc/lib/modules/$kversion/kernel/drivers/input/misc/w* \
+	     tc/lib/modules/$kversion/kernel/drivers/input/misc/y* \
+	     tc/lib/modules/$kversion/kernel/drivers/firewire \
+	     tc/lib/modules/$kversion/kernel/drivers/firmware \
+	     tc/lib/modules/$kversion/kernel/drivers/gpio \
+	     tc/lib/modules/$kversion/kernel/drivers/gpu/drm/i810 \
+	     tc/lib/modules/$kversion/kernel/drivers/gpu/drm/i830 \
+	     tc/lib/modules/$kversion/kernel/drivers/gpu/drm/mga \
+	     tc/lib/modules/$kversion/kernel/drivers/gpu/drm/r128 \
+	     tc/lib/modules/$kversion/kernel/drivers/gpu/drm/savage \
+	     tc/lib/modules/$kversion/kernel/drivers/gpu/drm/sis \
+	     tc/lib/modules/$kversion/kernel/drivers/gpu/drm/tdfx \
+	     tc/lib/modules/$kversion/kernel/drivers/gpu/drm/i2c \
+	     tc/lib/modules/$kversion/kernel/drivers/hwmon/a* \
+	     tc/lib/modules/$kversion/kernel/drivers/hwmon/c* \
+	     tc/lib/modules/$kversion/kernel/drivers/hwmon/d* \
+	     tc/lib/modules/$kversion/kernel/drivers/hwmon/e* \
+	     tc/lib/modules/$kversion/kernel/drivers/hwmon/f* \
+	     tc/lib/modules/$kversion/kernel/drivers/hwmon/g* \
+	     tc/lib/modules/$kversion/kernel/drivers/hwmon/i* \
+	     tc/lib/modules/$kversion/kernel/drivers/hwmon/k10temp.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/hwmon/l* \
+	     tc/lib/modules/$kversion/kernel/drivers/hwmon/m* \
+	     tc/lib/modules/$kversion/kernel/drivers/hwmon/n* \
+	     tc/lib/modules/$kversion/kernel/drivers/hwmon/p* \
+	     tc/lib/modules/$kversion/kernel/drivers/hwmon/s* \
+	     tc/lib/modules/$kversion/kernel/drivers/hwmon/t* \
+	     tc/lib/modules/$kversion/kernel/drivers/hwmon/via686a.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/hwmon/vt* \
+	     tc/lib/modules/$kversion/kernel/drivers/hwmon/w* \
+	     tc/lib/modules/$kversion/kernel/drivers/i2c/i2c-smbus.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/i2c/algos/i2c-algo-pca.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/i2c/algos/i2c-algo-pcf.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/i2c/algos/i2c-d* \
+	     tc/lib/modules/$kversion/kernel/drivers/i2c/algos/i2c-e* \
+	     tc/lib/modules/$kversion/kernel/drivers/i2c/algos/i2c-isch.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/i2c/algos/i2c-n* \
+	     tc/lib/modules/$kversion/kernel/drivers/i2c/algos/i2c-o* \
+	     tc/lib/modules/$kversion/kernel/drivers/i2c/algos/i2c-pxa.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/i2c/algos/i2c-s* \
+	     tc/lib/modules/$kversion/kernel/drivers/i2c/algos/i2c-t* \
+	     tc/lib/modules/$kversion/kernel/drivers/i2c/algos/scx* \
+	     tc/lib/modules/$kversion/kernel/drivers/i2c/chips \
+	     tc/lib/modules/$kversion/kernel/drivers/i2c/i2c-dev.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/ieee1394 \
+	     tc/lib/modules/$kversion/kernel/drivers/ieee802154 \
+	     tc/lib/modules/$kversion/kernel/drivers/infiniband \
+	     tc/lib/modules/$kversion/kernel/drivers/isdn \
+	     tc/lib/modules/$kversion/kernel/drivers/leds \
+	     tc/lib/modules/$kversion/kernel/drivers/lguest \
+	     tc/lib/modules/$kversion/kernel/drivers/md/persistent-data \
+	     tc/lib/modules/$kversion/kernel/drivers/md/dm-b* \
+	     tc/lib/modules/$kversion/kernel/drivers/md/dm-c* \
+	     tc/lib/modules/$kversion/kernel/drivers/md/dm-d* \
+	     tc/lib/modules/$kversion/kernel/drivers/md/dm-f* \
+	     tc/lib/modules/$kversion/kernel/drivers/md/dm-l* \
+	     tc/lib/modules/$kversion/kernel/drivers/md/dm-mirror.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/md/dm-multipath.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/md/dm-q* \
+	     tc/lib/modules/$kversion/kernel/drivers/md/dm-r* \
+	     tc/lib/modules/$kversion/kernel/drivers/md/dm-s* \
+	     tc/lib/modules/$kversion/kernel/drivers/md/dm-t* \
+	     tc/lib/modules/$kversion/kernel/drivers/md/dm-z* \
+	     tc/lib/modules/$kversion/kernel/drivers/md/f* \
+	     tc/lib/modules/$kversion/kernel/drivers/md/l* \
+	     tc/lib/modules/$kversion/kernel/drivers/md/m* \
+	     tc/lib/modules/$kversion/kernel/drivers/md/r* \
+	     tc/lib/modules/$kversion/kernel/drivers/media \
+	     tc/lib/modules/$kversion/kernel/drivers/memstick \
+	     tc/lib/modules/$kversion/kernel/drivers/message \
+	     tc/lib/modules/$kversion/kernel/drivers/mfd \
+	     tc/lib/modules/$kversion/kernel/drivers/misc \
+	     tc/lib/modules/$kversion/kernel/drivers/mmc/card \
+	     tc/lib/modules/$kversion/kernel/drivers/mmc/host \
+	     tc/lib/modules/$kversion/kernel/drivers/mtd \
+	     tc/lib/modules/$kversion/kernel/drivers/net/appletalk \
+	     tc/lib/modules/$kversion/kernel/drivers/net/arcnet \
+	     tc/lib/modules/$kversion/kernel/drivers/net/atl1c \
+	     tc/lib/modules/$kversion/kernel/drivers/net/atl1e \
+	     tc/lib/modules/$kversion/kernel/drivers/net/atlx \
+	     tc/lib/modules/$kversion/kernel/drivers/net/benet \
+	     tc/lib/modules/$kversion/kernel/drivers/net/bonding \
+	     tc/lib/modules/$kversion/kernel/drivers/net/can \
+	     tc/lib/modules/$kversion/kernel/drivers/net/chelsio \
+	     tc/lib/modules/$kversion/kernel/drivers/net/cxgb3 \
+	     tc/lib/modules/$kversion/kernel/drivers/net/enic \
+	     tc/lib/modules/$kversion/kernel/drivers/net/hamradio \
+	     tc/lib/modules/$kversion/kernel/drivers/net/igb \
+	     tc/lib/modules/$kversion/kernel/drivers/net/igbvf \
+	     tc/lib/modules/$kversion/kernel/drivers/net/irda \
+	     tc/lib/modules/$kversion/kernel/drivers/net/ixgb \
+	     tc/lib/modules/$kversion/kernel/drivers/net/ixgbe \
+	     tc/lib/modules/$kversion/kernel/drivers/net/mlx4 \
+	     tc/lib/modules/$kversion/kernel/drivers/net/myri10ge \
+	     tc/lib/modules/$kversion/kernel/drivers/net/netxen \
+	     tc/lib/modules/$kversion/kernel/drivers/net/qlge \
+	     tc/lib/modules/$kversion/kernel/drivers/net/sfc \
+	     tc/lib/modules/$kversion/kernel/drivers/net/tokenring \
+	     tc/lib/modules/$kversion/kernel/drivers/net/tulip \
+	     tc/lib/modules/$kversion/kernel/drivers/net/usb \
+	     tc/lib/modules/$kversion/kernel/drivers/net/vxge \
+	     tc/lib/modules/$kversion/kernel/drivers/net/wan \
+	     tc/lib/modules/$kversion/kernel/drivers/net/wimax \
+	     tc/lib/modules/$kversion/kernel/drivers/net/wireless \
+	     tc/lib/modules/$kversion/kernel/drivers/net/ethernet/3com/3c501.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/net/ethernet/3com/3c515.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/net/ethernet/3com/3c574_cs.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/net/ethernet/3com/3c589_cs.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/net/ethernet/3com/typhoon.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/net/ethernet/8390/a* \
+	     tc/lib/modules/$kversion/kernel/drivers/net/ethernet/8390/e* \
+	     tc/lib/modules/$kversion/kernel/drivers/net/ethernet/8390/h* \
+	     tc/lib/modules/$kversion/kernel/drivers/net/ethernet/8390/l* \
+	     tc/lib/modules/$kversion/kernel/drivers/net/ethernet/8390/s* \
+	     tc/lib/modules/$kversion/kernel/drivers/net/ethernet/8390/w* \
+	     tc/lib/modules/$kversion/kernel/drivers/net/ethernet/8390/pcnet_cs.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/net/ethernet/amd/a* \
+	     tc/lib/modules/$kversion/kernel/drivers/net/ethernet/amd/d* \
+	     tc/lib/modules/$kversion/kernel/drivers/net/ethernet/amd/l* \
+	     tc/lib/modules/$kversion/kernel/drivers/net/ethernet/amd/n* \
+	     tc/lib/modules/$kversion/kernel/drivers/net/ethernet/broadcom/cnic.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/net/ethernet/i825xx \
+	     tc/lib/modules/$kversion/kernel/drivers/net/ethernet/intel/i* \
+	     tc/lib/modules/$kversion/kernel/drivers/net/ethernet/nvidia \
+	     tc/lib/modules/$kversion/kernel/drivers/net/ethernet/via/via-rhine.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/net/ethernet/dnet.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/net/ethernet/ethoc.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/net/ethernet/fealnx.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/net/ethernet/jme.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/net/phy/c* \
+	     tc/lib/modules/$kversion/kernel/drivers/net/phy/d* \
+	     tc/lib/modules/$kversion/kernel/drivers/net/phy/e* \
+	     tc/lib/modules/$kversion/kernel/drivers/net/phy/i* \
+	     tc/lib/modules/$kversion/kernel/drivers/net/phy/lxt* \
+	     tc/lib/modules/$kversion/kernel/drivers/net/phy/mdio* \
+	     tc/lib/modules/$kversion/kernel/drivers/net/phy/mic* \
+	     tc/lib/modules/$kversion/kernel/drivers/net/phy/n* \
+	     tc/lib/modules/$kversion/kernel/drivers/net/phy/q* \
+	     tc/lib/modules/$kversion/kernel/drivers/net/phy/s* \
+	     tc/lib/modules/$kversion/kernel/drivers/net/phy/v* \
+	     tc/lib/modules/$kversion/kernel/drivers/net/dummy.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/net/mdio.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/pcmcia/i82092.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/pcmcia/i82365.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/pcmcia/pd6729.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/pcmcia/rsrc_nonstatic.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/pcmcia/tcic.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/pcmcia/yenta_socket.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/power \
+	     tc/lib/modules/$kversion/kernel/drivers/pps \
+	     tc/lib/modules/$kversion/kernel/drivers/regulator \
+	     tc/lib/modules/$kversion/kernel/drivers/rtc \
+	     tc/lib/modules/$kversion/kernel/drivers/serial \
+	     tc/lib/modules/$kversion/kernel/drivers/spi \
+	     tc/lib/modules/$kversion/kernel/drivers/telephony \
+	     tc/lib/modules/$kversion/kernel/drivers/uio \
+	     tc/lib/modules/$kversion/kernel/drivers/uwb \
+	     tc/lib/modules/$kversion/kernel/drivers/w1 \
+	     tc/lib/modules/$kversion/kernel/drivers/base \
+	     tc/lib/modules/$kversion/kernel/drivers/bcma \
+	     tc/lib/modules/$kversion/kernel/drivers/hv \
+	     tc/lib/modules/$kversion/kernel/drivers/nfc \
+	     tc/lib/modules/$kversion/kernel/drivers/of \
+	     tc/lib/modules/$kversion/kernel/drivers/ptp \
+	     tc/lib/modules/$kversion/kernel/drivers/target \
+	     tc/lib/modules/$kversion/kernel/drivers/tty \
+	     tc/lib/modules/$kversion/kernel/drivers/vhost \
+	     tc/lib/modules/$kversion/kernel/drivers/watchdog \
+	     tc/lib/modules/$kversion/kernel/drivers/block/aoe \
+	     tc/lib/modules/$kversion/kernel/drivers/block/drbd \
+	     tc/lib/modules/$kversion/kernel/drivers/block/paride \
+	     tc/lib/modules/$kversion/kernel/drivers/block/DAC960.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/block/brd.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/block/cciss.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/block/cpqarray.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/block/cryptoloop.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/block/nbd.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/block/osdblk.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/block/pktcdvd.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/block/sx8.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/block/ub.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/block/umem.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/block/xd.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/char/agp/ali-agp.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/char/agp/amd-k7-agp.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/char/agp/amd64-agp.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/char/agp/efficeon-agp.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/char/agp/nvidia-agp.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/char/agp/sis-agp.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/char/agp/sworks-agp.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/char/agp/via-agp.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/char/hw_random/a* \
+	     tc/lib/modules/$kversion/kernel/drivers/char/hw_random/g* \
+	     tc/lib/modules/$kversion/kernel/drivers/char/hw_random/i* \
+	     tc/lib/modules/$kversion/kernel/drivers/char/hw_random/t* \
+	     tc/lib/modules/$kversion/kernel/drivers/char/hw_random/v* \
+	     tc/lib/modules/$kversion/kernel/drivers/char/ip2 \
+	     tc/lib/modules/$kversion/kernel/drivers/char/i8k.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/char/toshiba.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/char/ipmi \
+	     tc/lib/modules/$kversion/kernel/drivers/char/mwave \
+	     tc/lib/modules/$kversion/kernel/drivers/char/pcmcia \
+	     tc/lib/modules/$kversion/kernel/drivers/char/tpm \
+	     tc/lib/modules/$kversion/kernel/drivers/char/applicom.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/char/cs5535_gpio.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/char/cyclades.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/char/dtlk.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/char/epca.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/char/hangcheck-timer.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/char/isicom.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/char/istallion.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/char/moxa.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/char/mxser.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/char/n_hdlc.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/char/n_r3964.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/char/nozomi.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/char/nsc_gpio.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/char/nvram.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/char/pc8736x_gpio.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/char/ppdev.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/char/raw.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/char/riscom8.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/char/rocket.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/char/scx200_gpio.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/char/sonypi.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/char/specialix.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/char/stallion.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/char/synclink.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/char/synclink_gt.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/char/synclinkmp.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/char/tlclk.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/char/cpufreq \
+	     tc/lib/modules/$kversion/kernel/drivers/gpu/drm/gma500 \
+	     tc/lib/modules/$kversion/kernel/drivers/ide \
+	     tc/lib/modules/$kversion/kernel/drivers/gpu/drm/nouveau \
+	     tc/lib/modules/$kversion/kernel/drivers/net/qlcnic \
+	     tc/lib/modules/$kversion/kernel/drivers/net/plip.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/net/ppp_*.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/net/pppo*.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/net/tun.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/net/fddi \
+	     tc/lib/modules/$kversion/kernel/drivers/net/hippi \
+	     tc/lib/modules/$kversion/kernel/drivers/net/hyperv \
+	     tc/lib/modules/$kversion/kernel/drivers/net/plip \
+	     tc/lib/modules/$kversion/kernel/drivers/net/ppp \
+	     tc/lib/modules/$kversion/kernel/drivers/net/slip \
+	     tc/lib/modules/$kversion/kernel/drivers/net/eql.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/net/ifb.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/net/macvlan.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/net/macvtap.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/net/netconsole.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/net/sb1000.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/net/sungem_phy.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/net/veth.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/net/ethernet/adaptec \
+	     tc/lib/modules/$kversion/kernel/drivers/net/ethernet/alteon \
+	     tc/lib/modules/$kversion/kernel/drivers/net/ethernet/brocade \
+	     tc/lib/modules/$kversion/kernel/drivers/net/ethernet/chelsio \
+	     tc/lib/modules/$kversion/kernel/drivers/net/ethernet/cirrus \
+	     tc/lib/modules/$kversion/kernel/drivers/net/ethernet/cisco \
+	     tc/lib/modules/$kversion/kernel/drivers/net/ethernet/dec \
+	     tc/lib/modules/$kversion/kernel/drivers/net/ethernet/dlink \
+	     tc/lib/modules/$kversion/kernel/drivers/net/ethernet/emulex \
+	     tc/lib/modules/$kversion/kernel/drivers/net/ethernet/fujitsu \
+	     tc/lib/modules/$kversion/kernel/drivers/net/ethernet/hp \
+	     tc/lib/modules/$kversion/kernel/drivers/net/ethernet/icplus \
+	     tc/lib/modules/$kversion/kernel/drivers/net/ethernet/mellanox \
+	     tc/lib/modules/$kversion/kernel/drivers/net/ethernet/micrel \
+	     tc/lib/modules/$kversion/kernel/drivers/net/ethernet/microchip \
+	     tc/lib/modules/$kversion/kernel/drivers/net/ethernet/myricom \
+	     tc/lib/modules/$kversion/kernel/drivers/net/ethernet/natsemi \
+	     tc/lib/modules/$kversion/kernel/drivers/net/ethernet/neterion \
+	     tc/lib/modules/$kversion/kernel/drivers/net/ethernet/oki-semi \
+	     tc/lib/modules/$kversion/kernel/drivers/net/ethernet/packetengines \
+	     tc/lib/modules/$kversion/kernel/drivers/net/ethernet/qlogic \
+	     tc/lib/modules/$kversion/kernel/drivers/net/ethernet/racal \
+	     tc/lib/modules/$kversion/kernel/drivers/net/ethernet/rdc \
+	     tc/lib/modules/$kversion/kernel/drivers/net/ethernet/seeq \
+	     tc/lib/modules/$kversion/kernel/drivers/net/ethernet/sfc \
+	     tc/lib/modules/$kversion/kernel/drivers/net/ethernet/silan \
+	     tc/lib/modules/$kversion/kernel/drivers/net/ethernet/sis \
+	     tc/lib/modules/$kversion/kernel/drivers/net/ethernet/smsc \
+	     tc/lib/modules/$kversion/kernel/drivers/net/ethernet/sun \
+	     tc/lib/modules/$kversion/kernel/drivers/net/ethernet/tehuti \
+	     tc/lib/modules/$kversion/kernel/drivers/net/ethernet/ti \
+	     tc/lib/modules/$kversion/kernel/drivers/parport/parport_ax88796.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/parport/parport_cs.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/parport/parport_serial.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/pci/pcie \
+	     tc/lib/modules/$kversion/kernel/drivers/pci/pci-stub.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/pci/hotplug/a* \
+	     tc/lib/modules/$kversion/kernel/drivers/pci/hotplug/c* \
+	     tc/lib/modules/$kversion/kernel/drivers/pci/hotplug/f* \
+	     tc/lib/modules/$kversion/kernel/drivers/pci/hotplug/i* \
+	     tc/lib/modules/$kversion/kernel/drivers/scsi/aacraid \
+	     tc/lib/modules/$kversion/kernel/drivers/scsi/aic7xxx \
+	     tc/lib/modules/$kversion/kernel/drivers/scsi/aic94xx \
+	     tc/lib/modules/$kversion/kernel/drivers/scsi/arcmsr \
+	     tc/lib/modules/$kversion/kernel/drivers/scsi/be2iscsi \
+	     tc/lib/modules/$kversion/kernel/drivers/scsi/bfa \
+	     tc/lib/modules/$kversion/kernel/drivers/scsi/bnx2* \
+	     tc/lib/modules/$kversion/kernel/drivers/scsi/cxgb3i \
+	     tc/lib/modules/$kversion/kernel/drivers/scsi/device_handler \
+	     tc/lib/modules/$kversion/kernel/drivers/scsi/fcoe \
+	     tc/lib/modules/$kversion/kernel/drivers/scsi/fnic \
+	     tc/lib/modules/$kversion/kernel/drivers/scsi/libfc \
+	     tc/lib/modules/$kversion/kernel/drivers/scsi/libsas \
+	     tc/lib/modules/$kversion/kernel/drivers/scsi/lpfc \
+	     tc/lib/modules/$kversion/kernel/drivers/scsi/megaraid \
+	     tc/lib/modules/$kversion/kernel/drivers/scsi/mpt2sas \
+	     tc/lib/modules/$kversion/kernel/drivers/scsi/mvsas \
+	     tc/lib/modules/$kversion/kernel/drivers/scsi/osd \
+	     tc/lib/modules/$kversion/kernel/drivers/scsi/pcmcia \
+	     tc/lib/modules/$kversion/kernel/drivers/scsi/pm8001 \
+	     tc/lib/modules/$kversion/kernel/drivers/scsi/qla2xxx \
+	     tc/lib/modules/$kversion/kernel/drivers/scsi/qla4xxx \
+	     tc/lib/modules/$kversion/kernel/drivers/scsi/sym53c8xx_2 \
+	     tc/lib/modules/$kversion/kernel/drivers/scsi/3w* \
+	     tc/lib/modules/$kversion/kernel/drivers/scsi/53c700.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/scsi/BusLogic.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/scsi/NCR* \
+	     tc/lib/modules/$kversion/kernel/drivers/scsi/a* \
+	     tc/lib/modules/$kversion/kernel/drivers/scsi/c* \
+	     tc/lib/modules/$kversion/kernel/drivers/scsi/d* \
+	     tc/lib/modules/$kversion/kernel/drivers/scsi/e* \
+	     tc/lib/modules/$kversion/kernel/drivers/scsi/f* \
+	     tc/lib/modules/$kversion/kernel/drivers/scsi/g* \
+	     tc/lib/modules/$kversion/kernel/drivers/scsi/h* \
+	     tc/lib/modules/$kversion/kernel/drivers/scsi/i* \
+	     tc/lib/modules/$kversion/kernel/drivers/scsi/l* \
+	     tc/lib/modules/$kversion/kernel/drivers/scsi/m* \
+	     tc/lib/modules/$kversion/kernel/drivers/scsi/n* \
+	     tc/lib/modules/$kversion/kernel/drivers/scsi/o* \
+	     tc/lib/modules/$kversion/kernel/drivers/scsi/p* \
+	     tc/lib/modules/$kversion/kernel/drivers/scsi/q* \
+	     tc/lib/modules/$kversion/kernel/drivers/scsi/r* \
+	     tc/lib/modules/$kversion/kernel/drivers/scsi/scsi_tgt.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/scsi/scsi_transport_fc.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/scsi/scsi_transport_iscsi.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/scsi/scsi_transport_sas.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/scsi/scsi_transport_spi.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/scsi/scsi_transport_srp.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/scsi/scsi_wait_scan.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/scsi/ses.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/scsi/sim710.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/scsi/stex.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/scsi/sym53c416.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/scsi/t128.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/scsi/tmscsim.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/scsi/u* \
+	     tc/lib/modules/$kversion/kernel/drivers/scsi/v* \
+	     tc/lib/modules/$kversion/kernel/drivers/scsi/w* \
+	     tc/lib/modules/$kversion/kernel/drivers/scsi/scsi_debug.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/scsi/st.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/staging \
+	     tc/lib/modules/$kversion/kernel/drivers/video/aty \
+	     tc/lib/modules/$kversion/kernel/drivers/video/console \
+	     tc/lib/modules/$kversion/kernel/drivers/video/display \
+	     tc/lib/modules/$kversion/kernel/drivers/video/geode \
+	     tc/lib/modules/$kversion/kernel/drivers/video/i810 \
+	     tc/lib/modules/$kversion/kernel/drivers/video/kyro \
+	     tc/lib/modules/$kversion/kernel/drivers/video/matrox \
+	     tc/lib/modules/$kversion/kernel/drivers/video/mb862xx \
+	     tc/lib/modules/$kversion/kernel/drivers/video/nvidia \
+	     tc/lib/modules/$kversion/kernel/drivers/video/riva \
+	     tc/lib/modules/$kversion/kernel/drivers/video/savage \
+	     tc/lib/modules/$kversion/kernel/drivers/video/sis \
+	     tc/lib/modules/$kversion/kernel/drivers/video/vermilion \
+	     tc/lib/modules/$kversion/kernel/drivers/video/via \
+	     tc/lib/modules/$kversion/kernel/drivers/video/arcfb.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/video/arkfb.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/video/broadsheetfb.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/video/carminefb.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/video/cirrusfb.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/video/cyber2000fb.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/video/fb_ddc.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/video/fb_sys_fops.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/video/hecubafb.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/video/hgafb.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/video/macmodes.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/video/metronomefb.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/video/n411.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/video/neofb.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/video/pm2fb.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/video/pm3fb.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/video/s1d13xxxfb.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/video/s3fb.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/video/sm501fb.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/video/sstfb.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/video/svgalib.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/video/syscopyarea.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/video/sysfillrect.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/video/sysimgblt.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/video/tdfxfb.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/video/tmiofb.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/video/tridentfb.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/video/uvesafb.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/video/vfb.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/video/vga16fb.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/video/vgastate.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/video/vt8623fb.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/video/backlight \
+	     tc/lib/modules/$kversion/kernel/drivers/video/udlfb.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/usb/atm \
+	     tc/lib/modules/$kversion/kernel/drivers/usb/class/cdc-acm.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/usb/class/cdc-wdm.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/usb/c67x00 \
+	     tc/lib/modules/$kversion/kernel/drivers/usb/gadget \
+	     tc/lib/modules/$kversion/kernel/drivers/usb/host/whci \
+	     tc/lib/modules/$kversion/kernel/drivers/usb/host/hwa-hc.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/usb/host/isp116x-hcd.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/usb/host/isp1362-hcd.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/usb/host/isp1760.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/usb/host/oxu210hp-hcd.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/usb/host/r8a66597-hcd.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/usb/host/sl811-hcd.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/usb/host/sl811_cs.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/usb/host/u132-hcd.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/usb/host/xhci.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/usb/serial \
+	     tc/lib/modules/$kversion/kernel/drivers/usb/storage/ums* \
+	     tc/lib/modules/$kversion/kernel/drivers/usb/storage/usb-libusual.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/usb/storage/ums-usbat.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/usb/storage/ums-sddr55.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/usb/storage/ums-sddr09.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/usb/storage/ums-onetouch.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/usb/storage/ums-karma.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/usb/storage/ums-jumpshot.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/usb/storage/ums-isd200.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/usb/storage/ums-freecom.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/usb/storage/ums-datafab.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/usb/storage/ums-cypress.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/usb/storage/ums-alauda.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/usb/serial/aircable.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/usb/serial/ark3116.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/usb/serial/belkin_sa.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/usb/serial/ch341.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/usb/serial/cp210x.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/usb/serial/cyberjack.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/usb/serial/cypress_m8.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/usb/serial/digi_acceleport.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/usb/serial/empeg.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/usb/serial/ftdi_sio.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/usb/serial/funsoft.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/usb/serial/garmin_gps.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/usb/serial/hp4x.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/usb/serial/io_edgeport.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/usb/serial/io_ti.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/usb/serial/ipaq.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/usb/serial/ipw.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/usb/serial/ir-usb.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/usb/serial/iuu_phoenix.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/usb/serial/keyspan.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/usb/serial/keyspan_pda.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/usb/serial/kl5kusb105.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/usb/serial/kobil_sct.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/usb/serial/mct_u232.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/usb/serial/mos7720.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/usb/serial/mos7840.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/usb/serial/moto_modem.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/usb/serial/navman.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/usb/serial/omninet.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/usb/serial/opticon.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/usb/serial/option.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/usb/serial/oti6858.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/usb/serial/pl2303.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/usb/serial/qcserial.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/usb/serial/safe_serial.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/usb/serial/siemens_mpi.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/usb/serial/sierra.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/usb/serial/spcp8x5.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/usb/serial/symbolserial.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/usb/serial/ti_usb_3410_5052.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/usb/serial/usb_debug.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/usb/serial/visor.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/usb/serial/whiteheat.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/usb/image \
+	     tc/lib/modules/$kversion/kernel/drivers/usb/misc \
+	     tc/lib/modules/$kversion/kernel/drivers/usb/mon \
+	     tc/lib/modules/$kversion/kernel/drivers/usb/otg \
+	     tc/lib/modules/$kversion/kernel/drivers/usb/wusbcore \
+	     tc/lib/modules/$kversion/kernel/drivers/platform/x86/a* \
+	     tc/lib/modules/$kversion/kernel/drivers/platform/x86/c* \
+	     tc/lib/modules/$kversion/kernel/drivers/platform/x86/d* \
+	     tc/lib/modules/$kversion/kernel/drivers/platform/x86/e* \
+	     tc/lib/modules/$kversion/kernel/drivers/platform/x86/f* \
+	     tc/lib/modules/$kversion/kernel/drivers/platform/x86/hdaps.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/platform/x86/hp_accel.ko \
+	     tc/lib/modules/$kversion/kernel/drivers/platform/x86/i* \
+	     tc/lib/modules/$kversion/kernel/drivers/platform/x86/m* \
+	     tc/lib/modules/$kversion/kernel/drivers/platform/x86/p* \
+	     tc/lib/modules/$kversion/kernel/drivers/platform/x86/s* \
+	     tc/lib/modules/$kversion/kernel/drivers/platform/x86/t* \
+	     tc/lib/modules/$kversion/kernel/drivers/platform/x86/x* \
+	     tc/lib/modules/$kversion/kernel/fs/9p \
+	     tc/lib/modules/$kversion/kernel/fs/a* \
+	     tc/lib/modules/$kversion/kernel/fs/ceph \
+	     tc/lib/modules/$kversion/kernel/fs/logfs \
+	     tc/lib/modules/$kversion/kernel/fs/adfs \
+	     tc/lib/modules/$kversion/kernel/fs/befs \
+	     tc/lib/modules/$kversion/kernel/fs/bfs \
+	     tc/lib/modules/$kversion/kernel/fs/btrfs \
+	     tc/lib/modules/$kversion/kernel/fs/cachefiles \
+	     tc/lib/modules/$kversion/kernel/fs/coda \
+	     tc/lib/modules/$kversion/kernel/fs/configfs \
+	     tc/lib/modules/$kversion/kernel/fs/cramfs \
+	     tc/lib/modules/$kversion/kernel/fs/dlm \
+	     tc/lib/modules/$kversion/kernel/fs/ecryptfs \
+	     tc/lib/modules/$kversion/kernel/fs/efs \
+	     tc/lib/modules/$kversion/kernel/fs/exofs \
+	     tc/lib/modules/$kversion/kernel/fs/ext3 \
+	     tc/lib/modules/$kversion/kernel/fs/ext2 \
+	     tc/lib/modules/$kversion/kernel/fs/freevxfs \
+	     tc/lib/modules/$kversion/kernel/fs/gfs2 \
+	     tc/lib/modules/$kversion/kernel/fs/hfs \
+	     tc/lib/modules/$kversion/kernel/fs/hfsplus \
+	     tc/lib/modules/$kversion/kernel/fs/hpfs \
+	     tc/lib/modules/$kversion/kernel/fs/jbd \
+	     tc/lib/modules/$kversion/kernel/fs/jffs2 \
+	     tc/lib/modules/$kversion/kernel/fs/jfs \
+	     tc/lib/modules/$kversion/kernel/fs/lockd \
+	     tc/lib/modules/$kversion/kernel/fs/minix \
+	     tc/lib/modules/$kversion/kernel/fs/ncpfs \
+	     tc/lib/modules/$kversion/kernel/fs/nfs* \
+	     tc/lib/modules/$kversion/kernel/fs/ntfs \
+	     tc/lib/modules/$kversion/kernel/fs/nil* \
+	     tc/lib/modules/$kversion/kernel/fs/nfs* \
+	     tc/lib/modules/$kversion/kernel/fs/o* \
+	     tc/lib/modules/$kversion/kernel/fs/q* \
+	     tc/lib/modules/$kversion/kernel/fs/r* \
+	     tc/lib/modules/$kversion/kernel/fs/ubifs \
+	     tc/lib/modules/$kversion/kernel/fs/ufs \
+	     tc/lib/modules/$kversion/kernel/fs/smbfs \
+	     tc/lib/modules/$kversion/kernel/fs/fat/msdos.ko \
+	     tc/lib/modules/$kversion/kernel/fs/binfmt_aout.ko \
+	     tc/lib/modules/$kversion/kernel/fs/binfmt_misc.ko \
+	     tc/lib/modules/$kversion/kernel/fs/nls/nls_cp932.ko \
+	     tc/lib/modules/$kversion/kernel/fs/nls/nls_cp936.ko \
+	     tc/lib/modules/$kversion/kernel/fs/nls/nls_cp949.ko \
+	     tc/lib/modules/$kversion/kernel/fs/nls/nls_cp950.ko \
+	     tc/lib/modules/$kversion/kernel/fs/nls/nls_euc-jp.ko \
+	     tc/lib/modules/$kversion/kernel/fs/nls/nls_ascii.ko \
+	     tc/lib/modules/$kversion/kernel/fs/nls/nls_cp12* \
+	     tc/lib/modules/$kversion/kernel/fs/nls/nls_cp7* \
+	     tc/lib/modules/$kversion/kernel/fs/nls/nls_cp8* \
+	     tc/lib/modules/$kversion/kernel/fs/nls/nls_iso8859-13.ko \
+	     tc/lib/modules/$kversion/kernel/fs/nls/nls_iso8859-14.ko \
+	     tc/lib/modules/$kversion/kernel/fs/nls/nls_iso8859-15.ko \
+	     tc/lib/modules/$kversion/kernel/fs/nls/nls_iso8859-2.ko \
+	     tc/lib/modules/$kversion/kernel/fs/nls/nls_iso8859-3.ko \
+	     tc/lib/modules/$kversion/kernel/fs/nls/nls_iso8859-4.ko \
+	     tc/lib/modules/$kversion/kernel/fs/nls/nls_iso8859-5.ko \
+	     tc/lib/modules/$kversion/kernel/fs/nls/nls_iso8859-6.ko \
+	     tc/lib/modules/$kversion/kernel/fs/nls/nls_iso8859-7.ko \
+	     tc/lib/modules/$kversion/kernel/fs/nls/nls_iso8859-8.ko \
+	     tc/lib/modules/$kversion/kernel/fs/nls/nls_iso8859-9.ko \
+	     tc/lib/modules/$kversion/kernel/fs/nls/nls_koi8* \
+	     tc/lib/modules/$kversion/kernel/lib/r* \
+	     tc/lib/modules/$kversion/kernel/lib/z* \
+	     tc/lib/modules/$kversion/kernel/lib/co* \
+	     tc/lib/modules/$kversion/kernel/lib/crc7* \
+	     tc/lib/modules/$kversion/kernel/lib/crc8* \
+	     tc/lib/modules/$kversion/kernel/lib/l* \
+	     tc/lib/modules/$kversion/kernel/lib/ts* \
+	     tc/lib/modules/$kversion/kernel/net/81* \
+	     tc/lib/modules/$kversion/kernel/net/82* \
+	     tc/lib/modules/$kversion/kernel/net/9* \
+	     tc/lib/modules/$kversion/kernel/net/a* \
+	     tc/lib/modules/$kversion/kernel/net/b* \
+	     tc/lib/modules/$kversion/kernel/net/c* \
+	     tc/lib/modules/$kversion/kernel/net/d* \
+	     tc/lib/modules/$kversion/kernel/net/i* \
+	     tc/lib/modules/$kversion/kernel/net/k* \
+	     tc/lib/modules/$kversion/kernel/net/l* \
+	     tc/lib/modules/$kversion/kernel/net/m* \
+	     tc/lib/modules/$kversion/kernel/net/n* \
+	     tc/lib/modules/$kversion/kernel/net/p* \
+	     tc/lib/modules/$kversion/kernel/net/rds \
+	     tc/lib/modules/$kversion/kernel/net/rose \
+	     tc/lib/modules/$kversion/kernel/net/rxrpc \
+	     tc/lib/modules/$kversion/kernel/net/s* \
+	     tc/lib/modules/$kversion/kernel/net/t* \
+	     tc/lib/modules/$kversion/kernel/net/w* \
+	     tc/lib/modules/$kversion/kernel/net/x* \
+	     tc/lib/modules/$kversion/kernel/crypto/async_tx \
+	     tc/lib/modules/$kversion/kernel/crypto/af* \
+	     tc/lib/modules/$kversion/kernel/crypto/al* \
+	     tc/lib/modules/$kversion/kernel/crypto/an* \
+	     tc/lib/modules/$kversion/kernel/crypto/ar* \
+	     tc/lib/modules/$kversion/kernel/crypto/au* \
+	     tc/lib/modules/$kversion/kernel/crypto/blowfish* \
+	     tc/lib/modules/$kversion/kernel/crypto/c* \
+	     tc/lib/modules/$kversion/kernel/crypto/deflate.ko \
+	     tc/lib/modules/$kversion/kernel/crypto/fcrypt.ko \
+	     tc/lib/modules/$kversion/kernel/crypto/g* \
+	     tc/lib/modules/$kversion/kernel/crypto/khazad.ko \
+	     tc/lib/modules/$kversion/kernel/crypto/l* \
+	     tc/lib/modules/$kversion/kernel/crypto/michael_mic.ko \
+	     tc/lib/modules/$kversion/kernel/crypto/pcbc.ko \
+	     tc/lib/modules/$kversion/kernel/crypto/r* \
+	     tc/lib/modules/$kversion/kernel/crypto/sa* \
+	     tc/lib/modules/$kversion/kernel/crypto/se* \
+	     tc/lib/modules/$kversion/kernel/crypto/sha512_generic.ko \
+	     tc/lib/modules/$kversion/kernel/crypto/t* \
+	     tc/lib/modules/$kversion/kernel/crypto/vmac.ko \
+	     tc/lib/modules/$kversion/kernel/crypto/wp512.ko \
+	     tc/lib/modules/$kversion/kernel/crypto/x* \
+	     tc/lib/modules/$kversion/kernel/crypto/zlib.ko
+    fi
+
+    # шрифты
+    sudo mkfontdir tc/usr/share/fonts/X11/misc
+    sudo mkfontdir tc/usr/share/fonts/X11/75dpi
+    
+    # busybox
+    sudo ln -sf busybox tc/bin/rm
+    sudo ln -sf busybox tc/bin/tar
+    sudo ln -sf busybox tc/bin/mkdir
+    sudo ln -sf busybox tc/bin/sh
+    sudo ln -sf busybox tc/bin/sh
+    sudo ln -sf busybox tc/bin/cp
+    sudo ln -sf busybox tc/bin/stty
+    sudo ln -sf busybox tc/bin/uname
+    sudo ln -sf busybox tc/bin/ln
+    sudo ln -sf busybox tc/bin/mv
+    sudo ln -sf busybox tc/bin/rm
+    sudo ln -sf busybox tc/bin/chmod
+    sudo ln -sf busybox tc/bin/chown
+    sudo ln -sf busybox tc/bin/mkdir
+    sudo ln -sf busybox tc/bin/rmdir
+    sudo ln -sf busybox tc/bin/ls
+    sudo ln -sf busybox tc/bin/tar
+    sudo ln -sf busybox tc/bin/cpio
+    sudo ln -sf busybox tc/bin/sed
+    sudo ln -sf busybox tc/bin/mount
+    sudo ln -sf busybox tc/bin/umount
+    sudo ln -sf busybox tc/bin/true
+    sudo ln -sf busybox tc/bin/hostname
+    sudo ln -sf busybox tc/bin/cat
+    sudo ln -sf busybox tc/bin/nc
+    sudo ln -sf sbin/init tc/init
+    sudo ln -sf ../bin/busybox tc/sbin/hwclock
+    sudo ln -sf ../bin/busybox tc/sbin/sysctl
+    sudo ln -sf ../bin/busybox tc/sbin/mdev
+    sudo ln -sf ../bin/busybox tc/sbin/depmod
+    sudo ln -sf ../bin/busybox tc/sbin/modprobe
+    sudo ln -sf ../bin/busybox tc/sbin/insmod
+    sudo ln -sf ../bin/busybox tc/sbin/rmmod
+    sudo ln -sf ../bin/busybox tc/sbin/lsmod
+    sudo ln -sf ../bin/busybox tc/sbin/udhcpc
+    sudo ln -sf ../bin/busybox tc/sbin/ifconfig
+    sudo ln -sf ../bin/busybox tc/sbin/route
+    sudo ln -sf ../bin/busybox tc/sbin/init
+    sudo ln -sf ../bin/busybox tc/sbin/halt
+    sudo ln -sf ../bin/busybox tc/sbin/reboot
+    sudo ln -sf ../bin/busybox tc/sbin/poweroff
+    sudo ln -sf ../../bin/busybox tc/usr/bin/env
+    sudo ln -sf ../../bin/busybox tc/usr/bin/find
+    sudo ln -sf ../../bin/busybox tc/usr/bin/killall
+    sudo ln -sf ../../bin/busybox tc/usr/bin/less
+    sudo ln -sf ../../bin/busybox tc/usr/bin/logger
+    sudo ln -sf ../../bin/busybox tc/usr/bin/awk
+    sudo ln -sf ../../bin/busybox tc/usr/bin/md5sum
+    sudo ln -sf ../../bin/busybox tc/usr/bin/wget
+    sudo ln -sf ../../bin/busybox tc/usr/bin/sort
+    sudo ln -sf ../../bin/busybox tc/usr/bin/xargs
+    sudo ln -sf ../../bin/busybox tc/usr/bin/tee
+
+    sudo ln -sf wish8.5 tc/usr/bin/wish
+    sudo ln -sf tclsh8.5 tc/usr/bin/tclsh
+    sudo chmod u+s tc/sbin/halt
+    sudo chmod u+s tc/sbin/telinit
+
+    # удаление dpkg и его зависимостей
+    sudo chroot tc dpkg --purge --force-all dpkg
+
+    # dpkg
+    sudo rm -rfv \
+	 tc/var/lib/dpkg \
+	 tc/usr/sbin/dpkg-divert \
+	 tc/usr/sbin/dpkg-preconfigure \
+	 tc/usr/sbin/dpkg-reconfigure \
+	 tc/usr/sbin/dpkg-statoverride \
+	 tc/usr/bin/dpkg* \
+	 tc/etc/dpkg \
+	 tc/var/lib/dpkg \
+	 tc/usr/share/dpkg \
+	 tc/usr/share/dpkg \
+	 tc/usr/sbin/dpkg-*
+}
+
+build_initrd () {
+    # local config
+    tar -cvf - -C config . | tar -xvf - --no-same-owner -C tc
+    if [ -d tc-addon ]; then
+	tar -cvf - -C tc-addon . | tar -xvf - --no-same-owner -C tc
+    fi
+
+    chroot tc chown -R root:root /root
+    chroot tc chown -R root:root /etc/dropbear
+    chroot tc chmod -R go-rwx /etc/dropbear
+    chroot tc chmod go+rx /root
+    chroot tc chmod go+rwx /root/.ICAClient
+    chroot tc chmod -R go-rwx /root/.ssh
+
+    if [ -f build/initrd ]; then
+	rm build/initrd
+    fi
+
+    #pushd tc
+    #sudo find . | sudo \
+    #cpio -H newc -o | lzma -7 -c > ../build/initrd
+    #popd
+
+    mksquashfs tc build/initrd -comp xz -Xbcj x86
+
+    chmod a-x build/initrd
+    chmod a+r build/initrd
+    chown alex:users build/initrd
+
+    echo > build/build.conf
+    echo > build/thinstation.conf.buildtime
+    build_date=`date "+%a, %d %b %Y %T"`
+    cat <<EOF > build/ts_config.xml
+<?xml version="1.0" encoding="utf-8"?>
+<Thinstation_ImagesSettings><Thinstation_ImagesSettings>
+<enable_shipka2_storage></enable_shipka2_storage>
+<comment>extrnal generated image</comment>
+<version>1.0.8</version>
+<manual_appsrvini></manual_appsrvini>
+<monitor_resolution></monitor_resolution>
+<appsrv_name></appsrv_name>
+<build_date>$build_date</build_date>
+<use_local_printer></use_local_printer>
+<vertrefresh></vertrefresh>
+<appsrvini></appsrvini>
+<printer_driver_name></printer_driver_name>
+<ica_application></ica_application>
+<session_type></session_type>
+<image_name>$image_name</image_name>
+<terminal_serv_ipaddr></terminal_serv_ipaddr>
+<horizsync></horizsync>
+<monitor_settings_name></monitor_settings_name>
+<modeline></modeline>
+<storage_letter></storage_letter>
+<use_usb></use_usb>
+<shipka2_storage_letter></shipka2_storage_letter>
+<resolution></resolution>
+<root_password></root_password>
+<included_in_build></included_in_build>
+</Thinstation_ImagesSettings></Thinstation_ImagesSettings>
+EOF
+    (
+	cd build
+	tar cvf $image_name.tar build.conf thinstation.conf.buildtime ts_config.xml vmlinuz initrd
+	rm -rf build.conf
+	rm -rf thinstation.conf.buildtime
+	rm -rf ts_config.xml
+    )
+}
+
+test_image () {
+    tar -cvf - -C config . | tar -xvf - --no-same-owner -C tc
+    mount --bind /dev tc/dev
+    mount --bind /sys tc/sys
+    mount --bind /tmp tc/tmp
+    mount --bind /proc tc/proc
+    mount --bind /proc/bus/usb tc/proc/bus/usb
+    true
+}
+
+clean () {
+    sudo umount -lf tc/proc/bus/usb
+    sudo umount -lf tc/dev
+    sudo umount -lf tc/sys
+    sudo umount -lf tc/tmp
+    sudo umount -lf tc/proc
+    true
+}

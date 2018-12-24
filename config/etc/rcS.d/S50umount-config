@@ -1,0 +1,7 @@
+#!/bin/sh
+
+echo ... umount config ...
+
+# отключаем шару с конфигурацией
+umount /mnt/config
+mount | awk '{print $3}' | grep /mnt/ | xargs -r -n 1 umount

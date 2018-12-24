@@ -1,0 +1,9 @@
+#!/bin/sh
+
+echo ... depmod ...
+
+touch /tmp/.modules.alias
+touch /tmp/.modules.dep
+touch /tmp/.modules.symbols
+
+depmod -a

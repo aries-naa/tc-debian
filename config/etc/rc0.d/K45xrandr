@@ -1,0 +1,11 @@
+#!/bin/sh
+
+echo ... stop xrandr, xset ...
+
+if [ -f /etc/xrandr ]; then
+    rm /etc/xrandr
+fi
+
+if [ -f /etc/xset ]; then
+    rm /etc/xset
+fi

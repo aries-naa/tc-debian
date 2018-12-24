@@ -1,0 +1,32 @@
+#!/bin/sh
+
+echo ... stop wfclient ...
+
+# wfclient.ini
+if [ -r $HOME/.ICAClient/wfclient.ini ]; then
+    rm $HOME/.ICAClient/wfclient.ini
+fi
+if [ -r $HOME/.ICAClient/appsrv.ini ]; then
+    rm $HOME/.ICAClient/appsrv.ini
+fi
+if [ -r $HOME/.ICAClient/rdp.ini ]; then
+    rm $HOME/.ICAClient/rdp.ini
+fi
+if [ -r $HOME/.ICAClient/reg.ini ]; then
+    rm $HOME/.ICAClient/reg.ini
+fi
+if [ -r $HOME/.ICAClient/autologon ]; then
+    rm $HOME/.ICAClient/autologon
+fi
+if [ -r $HOME/.ICAClient/app-index ]; then
+    rm $HOME/.ICAClient/app-index
+fi
+if [ -r $HOME/root.ppm ]; then
+    rm $HOME/root.ppm
+fi
+
+echo ... stop logins ...
+
+if [ -r $HOME/.ICAClient/logins ]; then
+    rm $HOME/.ICAClient/logins
+fi

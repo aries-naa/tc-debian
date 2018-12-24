@@ -1,0 +1,20 @@
+#! /bin/sh
+
+PATH=/sbin:/usr/sbin:/bin:/usr/bin
+export PATH
+
+HOME=/root
+export HOME
+
+# Set onlcr to avoid staircase effect.
+stty onlcr 0>&1
+
+runlevel=$1
+
+scripts=`ls /etc/rc$runlevel.d | sort -n`
+
+for script in $scripts; do
+    /etc/rc$runlevel.d/$script
+done
+
+exit 0

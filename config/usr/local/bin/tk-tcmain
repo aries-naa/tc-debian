@@ -1,0 +1,1380 @@
+#!/usr/bin/tclsh
+
+package require Thread
+package require inifile
+
+set arg_debug  ""
+set arg_xrandr ""
+foreach arg $argv {
+    if {$arg == "debug"} {
+	set arg_debug "debug"
+    } elseif {$arg == "xrandr"} {
+	set arg_xrandr "xrandr"
+    }
+}
+
+set mutex [tsv::set sync mutex [thread::mutex create]]
+set cond [tsv::set sync cond [thread::cond create]]
+
+thread::mutex lock $mutex
+
+set th1 [thread::create -joinable {
+
+    package require Tk
+
+    set home $env(HOME)
+    set xrdb_file [file join $home ".tk-tcmain"]
+    set xroot_file [file join $home "root.ppm"]
+
+    # значения по умолчанию
+    option add *cursor "left_ptr"
+    option add *root.background black
+
+    catch {
+	if {[file readable $xrdb_file]} {
+	    option readfile $xrdb_file
+	}
+    }
+
+    label .root
+    catch {
+	if {[file readable $xroot_file]} {
+	    image create photo root_img -file $xroot_file
+	    .root configure -image root_img
+	}
+    }
+    pack .root -fill both -expand 1
+    
+    thread::cond notify [tsv::get sync cond]
+    thread::wait
+}]
+thread::cond wait $cond $mutex 100000
+
+set hostname [info hostname]
+set home $env(HOME)
+set tc_config [file join $home ".ICAClient"]
+set xrdb_file [file join $home ".tk-tcmain"]
+set xroot_file [file join $home "root.ppm"]
+set logins_file [file join $tc_config "logins"]
+set autologon_file [file join $tc_config "autologon"]
+set ica_apps [file join $tc_config "appsrv.ini"]
+set rdp_apps [file join $tc_config "rdp.ini"]
+set app_index_file [file join $tc_config "app-index"]
+
+proc get_app_index {app_index_file} {
+
+    set app_index 0
+
+    if {[catch {open $app_index_file "r"} app_fd] == 0} {
+
+	gets $app_fd index
+
+	if {[regexp {^[\d]+$} $index] == 1} {
+	    set app_index $index
+	}
+
+	close $app_fd
+    }
+
+    return $app_index
+}
+
+proc configure_styles {} {
+
+    proc configure_style {style style_options} {
+
+	proc create_style_frame {frame} {
+	    set style_frame ".style"
+	    foreach element [split $frame "."] {
+	    set style_frame ${style_frame}.${element}
+		catch {frame $style_frame}
+	    }
+	}
+
+	set style_window [string tolower $style]
+
+	if {$style != ""} {
+
+	    create_style_frame $style_window
+
+	    if {$style_window == "."} {
+		set style_window ".style"
+	    } else {
+		set style_window ".style.${style_window}"
+	    }
+
+	    foreach option $style_options {
+		set value [option get $style_window $option *]
+		if {$value != ""} {
+		    ttk::style configure $style -$option $value
+		}
+		
+		set map_options {}
+		set value [option get $style_window $option-active *]
+		if {$value != ""} {lappend map_options active $value}
+		
+		set value [option get $style_window $option-disabled *]
+		if {$value != ""} {lappend map_options disabled $value}
+		
+		set value [option get $style_window $option-selected *]
+		if {$value != ""} {lappend map_options selected $value}
+		
+		if {[llength $map_options] >= 2} {ttk::style map $style -$option $map_options}
+	    }
+	}
+    }
+    
+    set style_options {rowheight}
+
+    foreach element [ttk::style element names] {
+	set element_options [ttk::style element options $element]
+	foreach option $element_options {
+	    lappend style_options [string range $option 1 end]
+	}
+    }
+    set style_options [lsort -unique $style_options]
+
+    frame .style
+
+    configure_style "." $style_options
+    foreach style [split [option get . style-list *] " "] {
+	configure_style $style $style_options
+    }
+}
+
+proc get_root_size {} {
+    
+    if {[catch {open "| /usr/bin/xrandr -q" r} xrandr_fd]} {
+	return "800x600"
+    }
+    
+    while {[gets $xrandr_fd line] >= 0} {
+	if {[regexp {^Screen.+current ([^\s,]+) x ([^\s,]+)} $line match resx resy]} {
+	    set r_height $resy
+	    set r_width $resx
+	}
+    }
+
+    catch {close $xrandr_fd}
+    
+    return "${r_width}x${r_height}+0+0"
+}
+
+proc place_main_frame {frame} {
+
+    place $frame -anchor center -relx 0.5 -rely 0.5
+    update
+
+    if {$frame == ".root.conn"} {
+	if {[$frame.logon.user cget -state] == "normal" && [$frame.logon.user get] == ""} {
+	    focus $frame.logon.user
+	} elseif {[$frame.logon.pass cget -state] == "normal"} {
+	    focus $frame.logon.pass
+	} elseif {[$frame.cmd.run cget -state] == "normal"} {
+	    focus $frame.cmd.run
+	} else {
+	    focus .root.cmd.action
+	}
+    }
+
+    if {$frame == ".root.reconn"} {
+	if {[$frame.logon.user get] == ""} {
+	    focus $frame.logon.user
+	} elseif {[$frame.logon.pass cget -state] == "normal"} {
+	    focus $frame.logon.pass
+	} elseif {[$frame.cmd.run cget -state] == "normal"} {
+	    focus $frame.cmd.run
+	} else {
+	    focus .root.cmd.action
+	}
+    }
+}
+
+proc place_log_frame {text} {
+    if {$text == ""} {
+	pack forget .root.log
+    } else {
+	.root.log.info configure -text $text
+	pack .root.log -side left -anchor s
+    }
+}
+
+proc update_timer {} {
+    .root.head.clock configure -text [clock format [clock seconds] -format "%d.%m.%Y %H:%M:%S"]
+    update
+    after 250 {update_timer}
+}
+
+proc exit_cmd {action} {
+    puts "$action"
+    exit 0
+}
+
+proc activate {action} {
+
+    global autoupdate_usb
+
+    place forget .root.conn
+    place forget .root.reconn
+    place forget .root.screen
+    place forget .root.usb
+    place forget .root.sound
+    pack  forget .root.log
+
+    set autoupdate_usb 0
+
+    if {$action == "connect"} {
+
+	.root.conn.logon.pass delete 0 end
+	place_main_frame .root.conn
+
+    } elseif {$action == "reconnect"} {
+
+	.root.reconn.logon.pass delete 0 end
+	place_main_frame .root.reconn
+
+    } elseif {$action == "tscreen"} {
+
+	place_main_frame .root.screen
+
+    } elseif {$action == "tusb"} {
+
+	set rh [winfo reqheight .root.usb]
+	set rw [winfo reqwidth .root.usb]
+	set h  [expr [winfo height .root] - [winfo height .root.head] - [winfo height .root.cmd]]
+	set w  [winfo width .root]
+	set autoupdate_usb 1
+
+	if {$rh < [expr $h * 0.6]} {
+	    set rh [expr int([expr $h * 0.6])]
+	}
+
+	if {$rw < [expr $w * 0.6]} {
+	    set rw [expr int([expr $w * 0.6])]
+	}
+
+	update_usb_devices
+	place configure .root.usb -width $rw -height $rh
+	place_main_frame .root.usb
+
+    } elseif {$action == "tsound"} {
+
+	set sframe [.root.sound.controls.frame getframe]
+	set rh [expr [winfo reqheight $sframe] + [winfo reqheight .root.sound.info]]
+	set rw [expr [winfo reqwidth $sframe] + [winfo reqwidth .root.sound.info]]
+	set h  [expr [winfo height .root] - [winfo height .root.head] - [winfo height .root.cmd]]
+	set w  [winfo width .root]
+
+	if {$rh > $h} {
+	    set rh $h
+	}
+
+	if {$rw > $w} {
+	    set rw $w
+	} else {
+	    if {$rw < [expr $w * 0.6]} {
+		set rw [expr int([expr $w * 0.6])]
+	    }
+	}
+
+	place configure .root.sound -width $rw -height $rh
+	place_main_frame .root.sound
+    }
+}
+
+# rdp клиент имеет ограничения по длине пароля - 14 символов и имени пользователя - 20 символов.
+# по этому - по возможности разбиваем имя пользователя на имя и домен, далее если имя длиннее 20
+# символов - то не передаём никаких параметров, иначе если длина пароля больше 14 символов то
+# передаём только имя без пароля.
+proc format_rdp_cmdline {connection user_name user_pass} {
+
+    set c_media   [lindex $connection 6]
+    set c_printer [lindex $connection 7]
+    set c_audio   [lindex $connection 8]
+
+    # !!! alex !!!
+    #set rdp_cmd {/home/alex/private/bin/rdesktop -x l -k en-us -a 16 -f \
+		     #-r disk:media=/media \
+		     #-r addin:ViTmDrv:/home/alex/private/bin/tm-rdp-client}
+    set rdp_cmd {/usr/bin/rdesktop -k en-us -a 16 -f -x l \
+		     -r addin:ViTmDrv:/usr/lib/tm-rdp-client}
+
+    if {$c_media == 1} {
+	lappend rdp_cmd -r disk:media=/media
+    }
+
+    if {$c_audio == 1} {
+	lappend rdp_cmd -r sound:local
+    } else {
+	lappend rdp_cmd -r sound:off
+    }
+    
+    # принтера
+    # !!! alex !!!
+    set printcap "/etc/printcap"
+    #set printcap "./printcap"
+
+    if {$c_printer == 1} {
+
+	global env
+	set default_prn ""
+	catch {set default_prn $env(PRINTER)}
+
+	if {[catch {open $printcap "r"} prn_fd] == 0} {
+	    while {[gets $prn_fd prn_line] >= 0} {
+		if {[regexp {^([^:]+).*:wd=(.+):$} $prn_line match prn_name prn_drv]} {
+		    if {$prn_name == $default_prn} {
+			set rdp_cmd [linsert $rdp_cmd 1 -r "printer:$prn_name=$prn_drv"]
+		    } else {
+			lappend rdp_cmd -r "printer:$prn_name=$prn_drv"
+		    }
+		}
+	    }
+	    close $prn_fd
+	}
+    }
+
+    if {$user_name != ""} {
+	set user   $user_name
+	set domain ""
+
+	regexp {(.+)\\(.+)} $user_name match domain user
+	if {$user != "" && [string length $user] <= 20} {
+
+	    lappend rdp_cmd -u "$user"
+	    if {$domain != ""} {
+		lappend rdp_cmd -d "$domain"
+	    }
+
+	    if {[string length $user_pass] <= 14} {
+		lappend rdp_cmd -p "$user_pass"
+	    }
+	}
+    }
+
+    return $rdp_cmd
+}
+
+proc tc_connect {connection user_name user_pass} {
+
+    global hostname
+
+    set conn_type  [lindex $connection 0]
+    set conn_name  [lindex $connection 1]
+    set conn_desc  [lindex $connection 2]
+    set conn_dcred [lindex $connection 4]
+
+    wm state . withdrawn
+
+    place_log_frame ""
+
+    if {$conn_type == "ica"} {
+	if {$conn_dcred == "1" || $user_name == ""} {
+	    catch {exec /usr/bin/logger -t TERMINAL.$hostname \
+		       "Start $conn_type connection : $conn_desc"}
+	    catch {exec /usr/bin/wfica -desc "$conn_name" -username ""}
+	    catch {exec /usr/bin/logger -t TERMINAL.$hostname \
+		       "Fineshed $conn_type connection : $conn_desc"}
+	} else {
+	    catch {exec /usr/bin/logger -t TERMINAL.$hostname \
+		       "Start $conn_type connection : $conn_desc for $user_name"}
+	    catch {exec /usr/bin/wfica -desc "$conn_name" -username "$user_name" -clearpassword "$user_pass"}
+	    catch {exec /usr/bin/logger -t TERMINAL.$hostname \
+		       "Fineshed $conn_type connection : $conn_desc for $user_name"}
+	}
+    } elseif {$conn_type == "rdp"} {
+	
+	if {$conn_dcred == "1" || $user_name == ""} {
+	    catch {exec /usr/bin/logger -t TERMINAL.$hostname \
+		       "Start $conn_type connection : $conn_desc"}
+	    catch {exec {*}[format_rdp_cmdline $connection "" ""] "$conn_name"}
+	    catch {exec /usr/bin/logger -t TERMINAL.$hostname \
+		       "Fineshed $conn_type connection : $conn_desc"}
+	} else {
+	    catch {exec /usr/bin/logger -t TERMINAL.$hostname \
+		       "Start $conn_type connection : $conn_desc for $user_name"}
+	    catch {exec {*}[format_rdp_cmdline $connection "$user_name" "$user_pass"] "$conn_name"}
+	    catch {exec /usr/bin/killall -q tm-rdp-client}
+	    catch {exec /usr/bin/logger -t TERMINAL.$hostname \
+		       "Fineshed $conn_type connection : $conn_desc for $user_name"}
+	}
+    }
+
+    wm state . normal
+}
+
+proc tc_reconnect {connection user_name user_pass} {
+
+    global hostname
+
+    set conn_type [lindex $connection 0]
+    set conn_name [lindex $connection 1]
+    set conn_desc [lindex $connection 2]
+
+    wm state . withdrawn
+
+    place_log_frame ""
+
+    catch {exec /usr/bin/logger -t TERMINAL.$hostname \
+	       "Start $conn_type reconnection : $conn_desc for $user_name"}
+
+    if {$conn_type == "ica"} {
+	set conn_url [lindex $connection 5]
+	if {[catch \
+		 {exec /usr/lib/ICAClient/util/pnabrowse -U "$user_name" -P "$user_pass" -WR "$conn_url"} \
+		 result options] != 0} {
+	    place_log_frame $result
+	}
+    } elseif {$conn_type == "rdp"} {
+	catch {exec {*}[format_rdp_cmdline "$user_name" "$user_pass"] "$conn_name"}
+	catch {exec /usr/bin/killall -q tm-rdp-client}
+    }
+
+    catch {exec /usr/bin/logger -t TERMINAL.$hostname \
+	       "Fineshed $conn_type reconnection : $conn_desc for $user_name"}
+
+    wm state . normal
+}
+
+proc get_connections {ica rdp} {
+    set apps {}
+
+    if {[catch {::ini::open $ica "r"} apps_fd] == 0} {
+
+	catch {
+	    foreach connection [::ini::keys $apps_fd "ApplicationServers"] {
+		set address $connection
+		set description $connection
+		set index 1000
+		set dcred 0
+		set srv_url ""
+		catch {
+		    array set parameters [::ini::get $apps_fd $connection]
+		    catch {set description $parameters(TC_Name)}
+		    catch {set index $parameters(TC_Index)}
+		    catch {set srv_url $parameters(TC_URL)}
+		    set c_dcred ""
+		    catch {set c_dcred [string tolower $parameters(TC_DisableCred)]}
+		    if {$c_dcred == "on" || $c_dcred == "true" || $c_dcred == "1"} {
+			set dcred 1
+		    }
+		    unset parameters
+		}
+		if {$address != ""} {
+		    lappend apps [list ica $address $description $index $dcred $srv_url "" "" ""]
+		}
+	    }
+	}
+
+	::ini::close $apps_fd
+    }
+
+    if {[catch {::ini::open $rdp "r"} apps_fd] == 0} {
+
+	catch {
+	    foreach connection [::ini::keys $apps_fd "ApplicationServers"] {
+		set address ""
+		set description $connection
+		set index 1000
+		set dcred 0
+		set c_dcred ""
+		set CDMAllowed 1
+		set UsePrintcap 1
+		set ClientAudio 1
+		catch {
+		    array set parameters [::ini::get $apps_fd $connection]
+
+		    set c_dcred "off"
+		    set c_media "on"
+		    set c_printer "on"
+		    set c_audio "on"
+
+		    catch {set address $parameters(Address)}
+		    catch {set description $parameters(TC_Name)}
+		    catch {set index $parameters(TC_Index)}
+		    catch {set c_dcred [string tolower $parameters(TC_DisableCred)]}
+		    catch {set c_media [string tolower $parameters(CDMAllowed)]}
+		    catch {set c_printer [string tolower $parameters(UsePrintcap)]}
+		    catch {set c_audio [string tolower $parameters(ClientAudio)]}
+
+		    if {$c_dcred == "on" || $c_dcred == "true" || $c_dcred == "1"} {
+			set dcred 1
+		    }
+		    if {$c_media == "off" || $c_media == "false" || $c_media == "0"} {
+			set CDMAllowed 0
+		    }
+		    if {$c_printer == "off" || $c_printer == "false" || $c_printer == "0"} {
+			set UsePrintcap 0
+		    }
+		    if {$c_audio == "off" || $c_audio == "false" || $c_audio == "0"} {
+			set ClientAudio 0
+		    }
+		    unset parameters
+		}
+
+		if {$address != ""} {
+		    lappend apps [list rdp $address $description $index $dcred "" $CDMAllowed $UsePrintcap $ClientAudio]
+		}
+	    }
+	}
+
+	::ini::close $apps_fd
+    }
+
+    proc compare_connections {a b} {
+	set index_a [lindex $a 3]
+	set index_b [lindex $b 3]
+	if {$index_a == $index_b} {
+	    return 0
+	} elseif {$index_a > $index_b} {
+	    return 1
+	} else {
+	    return -1
+	}
+    }
+
+    return [lsort -command compare_connections $apps]
+    #return {}
+    #return {{ica 75STD-i "Inform" 1000 1}}
+    #return {{ica 75STD-i "Inform" 300 0} {ica 75STD-s "DSP" 200 1} {rdp s75dc11 "DC chel.cbr.ru" 100 0}}
+}
+
+proc get_logins {logins_file} {
+    if {[file readable $logins_file]} {
+        set logins ""
+        catch {
+            set logins_ch [open $logins_file]
+            gets $logins_ch logins
+            close $logins_ch
+            set logins [string map {"," " "} $logins]
+        }
+        return $logins
+    } else {
+        return {}
+    }
+}
+
+# S -> n T S
+# S -> e
+#
+# T -> t I
+#
+# I -> v D
+# I -> i I
+#
+# D -> e
+# D -> n T
+# D -> d S
+proc get_amix_info {} {
+    #global amix_fd
+    set amix_fd [open "| amixer contents"]
+
+    set controls [list]
+    set control [list]
+    set control_numid 0
+    set control_name ""
+
+    proc is_n {line} {
+	upvar control_numid new_numid
+	upvar control_name new_name
+	upvar control new_control
+	if {[regexp {^numid=([\d]+),iface=[^,]+,name='(.+)'.*$} $line match numid name]} {
+	    set new_control [list]
+	    set new_numid $numid
+	    set new_name $name
+	    return 1
+	}
+	return 0
+    }
+
+    proc is_t {line} {
+	upvar control_numid new_numid
+	upvar control_name new_name
+	upvar control new_control
+	if {[regexp {^  ; type=([^,]+),access=[^,]+,values=[\d]+(.*$)} $line match type rest]} {
+	    if {$type == "BOOLEAN"} {
+		set new_control [list $new_numid $new_name $type {}]
+	    } elseif {$type == "INTEGER"} {
+		set range [list 0 100]
+		if {[regexp {^,min=([\d]+),max=([\d]+).*$} $rest match min_value max_value]} {
+		    set range [list $min_value $max_value]
+		}
+		set new_control [list $new_numid $new_name $type $range]
+	    }
+	    return 1
+	}
+	return 0
+    }
+
+    proc is_v {line} {
+	upvar control_numid new_numid
+	upvar control_name new_name
+	upvar control new_control
+	upvar controls new_controls
+	if {[regexp {^  : values=(.*)$} $line match values]} {
+	    if {[llength $new_control] != 0} {
+		lappend new_control [split $values ","]
+		lappend new_controls $new_control
+	    }
+	    return 1
+	}
+	return 0
+    }
+
+    proc is_d {line} {
+	if {[regexp {^  | dBscale.*} $line match]} {return 1}
+	return 0
+    }
+
+    proc is_i {line} {
+	if {[regexp {^  ; Item.*} $line match]} {return 1}
+	return 0
+    }
+
+    while {1} {
+	if {[eof $amix_fd]} break
+	gets $amix_fd line
+	if {[is_n $line]} {
+	    # новый элемент
+	    set is_break 1
+	    while {$is_break} {
+		gets $amix_fd line
+		if {[is_t $line]} {
+		    while {1} {
+			gets $amix_fd line
+			if {[is_v $line]} {
+			    if {[eof $amix_fd]} {
+				set is_break 0
+				break
+			    }
+			    gets $amix_fd line
+			    if {[is_n $line]} {
+				# новый элемент
+				break
+			    } elseif {[is_d $line]} {
+				set is_break 0
+				break
+			    } elseif {$line == "" && [eof $amix_fd]} {
+				set is_break 0
+				break
+			    } else {
+				error "Syntax error: n|d"
+			    }
+			    set is_break 0
+			    break
+			} elseif {[is_i $line]} {
+			} else {
+			    error "Syntax error: v|i"
+			}
+		    }
+		} else {
+		    error "Syntax error: t"
+		}	    
+	    }
+	} elseif {$line == "" && [eof $amix_fd]} {
+	    break
+	} else {
+	    error "Syntax error: n"
+	}
+    }
+    catch {close $amix_fd}
+
+    return $controls
+}
+
+# {DEV {{res rate} {res rate} ...} current_mode_index}
+proc get_xrandr_info {} {
+    set randr {}
+
+    proc store_info {randr_info randr_dev randr_mode randr_index} {
+	upvar $randr_info randr
+	lappend randr [list $randr_dev $randr_mode $randr_index]
+    }
+
+    set randr_dev ""
+    set randr_mode {}
+    set randr_index 0
+    set index 0
+    #if {[catch {open "| /bin/cat xrandr.info" r} xrandr_fd]} {return {}}
+    if {[catch {open "| /usr/bin/xrandr -q" r} xrandr_fd]} {return {}}
+    while {[gets $xrandr_fd line] >= 0} {
+	if {[regexp {^([^\s]+)\sconnected.*} $line match new_dev]} {
+	    if {$randr_dev != ""} {
+		store_info randr $randr_dev $randr_mode $randr_index
+	    }
+	    set randr_mode {}
+	    set randr_index 0
+	    set index 0
+	    set randr_dev $new_dev
+	} elseif {[regexp {^\s{3}([^\s]+)\s+([^\s].*$)} $line match res rates]} {
+	    foreach rate [split $rates " +"] {
+		if {$rate != ""} {
+		    if {[string index $rate end] == "*"} {
+			set randr_index $index
+			set rate [string range $rate 0 end-1]
+		    }
+		    lappend randr_mode [list $res $rate]
+		    set index [expr $index + 1]
+		}
+	    }
+	}
+    }
+    catch {close $xrandr_fd}
+
+    store_info randr $randr_dev $randr_mode $randr_index
+    set randr_mode {}
+    set randr_index 0
+    set index 0
+    set randr_dev $new_dev
+
+    return $randr
+}
+
+proc set_xrandr {dev mode rate} {
+    if {$dev != "" && $mode != "" && $rate != ""} {
+	catch {exec /usr/bin/xrandr --output "$dev" --mode "$mode" --rate "$rate"}
+	puts "xrandr"
+	exit 0
+    }
+}
+
+proc get_usb_devices {} {
+    set usb_devices {}
+    set sys_usb {}
+
+    proc read_dev_info {sys_file} {
+	set dev_info ""
+
+	if {[file exists $sys_file]} {
+	    catch {
+		set sys_fd [open "$sys_file" r]
+		catch {set dev_info [gets $sys_fd]}
+		close $sys_fd
+	    }
+	}
+	return $dev_info
+    }
+
+    catch {set sys_usb [glob -directory /sys/bus/usb/devices -type d *]}
+    foreach sys_dir $sys_usb {
+	if {[file exists [file join $sys_dir "dev"]]} {
+	    set usb_manufacturer [read_dev_info [file join $sys_dir "manufacturer"]]
+	    set usb_product [read_dev_info [file join $sys_dir "product"]]
+	    set usb_serial [read_dev_info [file join $sys_dir "serial"]]
+
+	    if {[regexp ".HCI Host Controller" $usb_product] != 1} {
+		lappend usb_devices [list $usb_manufacturer $usb_product $usb_serial]
+	    }
+	}
+    }
+
+    #return {{"manufacturer" "product" "serial"} {v1 storage 123} {v2 printer 456}}
+    return $usb_devices
+}
+
+proc update_usb_devices {} {
+    global autoupdate_usb
+    set usb [get_usb_devices]
+    
+    foreach item [.root.usb.dev children {}] {
+	.root.usb.dev delete $item
+    }
+    foreach dev $usb {
+	.root.usb.dev insert {} end -values $dev
+    }
+    if {$autoupdate_usb == 1} {
+	after 5000 update_usb_devices		 
+    }
+}
+
+package require Tk
+package require Ttk
+package require BWidget
+
+set size_spec [get_root_size]
+thread::send $th1 "wm geometry . $size_spec"
+thread::send $th1 "wm attributes . -fullscreen 1"
+
+ttk::style layout CMD.TMenubutton {
+    Menubutton.border -sticky nswe -children
+    {Menubutton.focus -sticky nswe -children {Menubutton.indicator -side left -sticky {}}}
+}
+
+# Список подключений
+# Сортировка по индексу
+# {{rdp address description index} {ica address description index}}
+# Список пуст - поля ввода и кнопка подключения заблокированы
+# В списке один элемент - просто описание подключения
+# В списке несколько элементов - полный выбор
+set apps [get_connections $ica_apps $rdp_apps]
+set logins_list [get_logins $logins_file]
+set xrandr [get_xrandr_info]
+set amixer_info [get_amix_info]
+#set xrandr {{"VGA-1" {{1000x600 101} {500x300 121} {1200x900 131}} 2} {"HDMI-1" {{800x600 75} {600x400 85} {400x300 120}} 0} {"DP-1" {} 127}}
+#set xrandr {{"VGA-1" {{1000x600 50} {500x300 100} {1200x900 85}} 1}}
+#set xrandr {{"DP-1" {} 127}}
+#set xrandr {}
+set autoupdate_usb 0
+set app_index [get_app_index $app_index_file]
+
+# значения по умолчанию
+option add *cursor "left_ptr"
+option add *root.background black
+
+option add *root.head.padding 5
+
+option add *root.conn.padding 10
+option add *root.conn.relief raised
+option add *root.conn.info.text "To connect to the terminal farm \npress \"Connect\" button."
+option add *root.conn.logon.conn_label.text "Connect to"
+option add *root.conn.logon.conn_menu.text "Unknown"
+option add *root.conn.logon.user_label.text "User"
+option add *root.conn.logon.pass_label.text "Password"
+option add *root.conn.logon.pass.show "*"
+option add *root.conn.logon.ipadx 5
+option add *root.conn.logon.ipady 5
+option add *root.conn.cmd.run.text "Connect"
+
+option add *root.reconn.padding 10
+option add *root.reconn.relief raised
+option add *root.reconn.info.text "To reconnect after a failure \npress \"Reconnect\" button."
+option add *root.reconn.logon.conn_label.text "Reconnect to"
+option add *root.reconn.logon.conn_menu.text "Unknown"
+option add *root.reconn.logon.user_label.text "User"
+option add *root.reconn.logon.pass_label.text "Password"
+option add *root.reconn.logon.pass.show "*"
+option add *root.reconn.logon.ipadx 5
+option add *root.reconn.logon.ipady 5
+option add *root.reconn.cmd.run.text "Reconnect"
+
+option add *root.cmd.padding 3
+option add *root.cmd.relief raised
+option add *root.cmd.power.text "Poweroff"
+option add *root.cmd.action.menu.connect "Connect"
+option add *root.cmd.action.menu.reconnect "Reconnect"
+option add *root.cmd.action.menu.tscreen "Screen"
+option add *root.cmd.action.menu.tsound "Sound"
+option add *root.cmd.action.menu.tusb "Usb"
+option add *root.cmd.action.menu.poweroff "Poweroff"
+option add *root.cmd.action.menu.reboot "Reboot"
+option add *root.cmd.action.menu.update "Update"
+option add *root.cmd.action.menu.debug "Terminal"
+
+option add *root.screen.padding 10
+option add *root.screen.relief raised
+option add *root.screen.info.text "Select the desired screen resolution,\nand then click \"Apply\" button."
+option add *root.screen.tune.dev_label.text "Device"
+option add *root.screen.tune.res_label.text "Resolution"
+option add *root.screen.tune.ipadx 5
+option add *root.screen.tune.ipady 5
+option add *root.screen.cmd.run.text "Apply"
+
+option add *root.usb.padding 3
+option add *root.usb.info.padding 7
+option add *root.usb.relief raised
+option add *root.usb.info.text "USB devices."
+option add *root.usb.dev.manufacturer "Manufacturer"
+option add *root.usb.dev.product "Product"
+option add *root.usb.dev.serial "Serial"
+
+option add *root.sound.on On
+option add *root.sound.off Off
+option add *root.sound.padding 3
+option add *root.sound.info.padding 7
+option add *root.sound.relief raised
+option add *root.sound.info.text "Select the desired volume level."
+
+catch {
+    if {[file readable $xrdb_file]} {
+	option readfile $xrdb_file
+    }
+}
+configure_styles
+
+label .root
+catch {
+    if {[file readable $xroot_file]} {
+	image create photo root_img -file $xroot_file
+	.root configure -image root_img
+    }
+}
+
+ttk::frame .root.head
+ttk::label .root.head.host -text $hostname
+ttk::label .root.head.clock
+
+set user_name ""
+set user_pass ""
+
+# Для каждой задачи будет отдельное окно:
+#   .conn    - подключение;
+#   .reconn  - восстановление подключения;
+#   .tscreen - настройка экрана;
+#   .tsound  - настройка звука;
+#   .tusb    - список USB устройств.
+
+# .conn - подключение
+set conn_app_index 0
+ttk::frame .root.conn
+ttk::label .root.conn.info
+ttk::frame .root.conn.logon
+ttk::frame .root.conn.cmd
+ttk::label .root.conn.logon.conn_label
+ttk::label .root.conn.logon.user_label
+if {[llength $apps] > 1} {
+    ttk::menubutton .root.conn.logon.conn_menu
+} else {
+    ttk::label .root.conn.logon.conn_menu -text ""
+}
+ttk::combobox .root.conn.logon.user -state disabled -textvariable user_name -values $logins_list
+ttk::label .root.conn.logon.pass_label
+ttk::entry .root.conn.logon.pass -state disabled -textvariable user_pass
+bind .root.conn.logon.pass <KeyPress-Return> {.root.conn.cmd.run invoke}
+bind .root.conn.logon.pass <KeyPress-KP_Enter> {.root.conn.cmd.run invoke}
+ttk::button .root.conn.cmd.run -state disabled
+
+# .conn - настройка
+.root.conn.info configure -text [subst [option get .root.conn.info text *]]
+if {[llength $apps] > 0} {
+    set conn_dcred [lindex $apps 0 4]
+    if {$conn_dcred == 0} {
+	.root.conn.logon.user configure -state normal
+	.root.conn.logon.pass configure -state normal
+    }
+    .root.conn.cmd.run configure -state normal
+}
+catch {.root.conn.logon.user current 0}
+if {[llength $apps] > 1} {
+    menu .root.conn.logon.conn_menu.list -tearoff 0
+    foreach connection $apps {
+	.root.conn.logon.conn_menu.list add command \
+	    -label [lindex $connection 2] \
+	    -command {
+		set conn_app_index [.root.conn.logon.conn_menu.list index active]
+		if {$conn_app_index == "none"} {set conn_app_index 0}
+		set conn_name [lindex $apps "$conn_app_index 2"]
+		set conn_dcred [lindex $apps "$conn_app_index 4"]
+		.root.conn.logon.conn_menu configure -text $conn_name
+		if {$conn_dcred == 1} {
+		    .root.conn.logon.user configure -state disabled
+		    .root.conn.logon.pass configure -state disabled
+		} else {
+		    .root.conn.logon.user configure -state normal
+		    .root.conn.logon.pass configure -state normal
+		}
+	    }
+    }
+
+    .root.conn.logon.conn_menu configure -text [lindex $apps "$conn_app_index 2"]
+    .root.conn.logon.conn_menu configure -menu .root.conn.logon.conn_menu.list
+    .root.conn.logon.conn_menu.list activate $app_index
+    .root.conn.logon.conn_menu.list invoke $app_index
+} else {
+    .root.conn.logon.conn_menu configure -text [lindex $apps {0 2}]
+}
+.root.conn.cmd.run configure -command {
+    tc_connect [lindex $apps $conn_app_index] $user_name $user_pass
+    set user_pass ""
+}
+
+# .conn - размещение
+set ipx [option get .root.conn.logon ipadx *]
+set ipy [option get .root.conn.logon ipady *]
+pack .root.conn.info -side top -fill x
+pack .root.conn.logon -side top -fill x -expand 1
+grid .root.conn.logon.conn_label .root.conn.logon.conn_menu -ipadx $ipx -pady $ipy -sticky "w"
+grid .root.conn.logon.user_label .root.conn.logon.user -ipadx $ipx -pady $ipy -sticky "ew"
+grid .root.conn.logon.pass_label .root.conn.logon.pass -ipadx $ipx -pady $ipy -sticky "ew"
+grid columnconfigure .root.conn.logon 1 -weight 1
+grid rowconfigure .root.conn.logon 0 -weight 1
+grid rowconfigure .root.conn.logon 1 -weight 1
+grid rowconfigure .root.conn.logon 2 -weight 1
+pack .root.conn.cmd -side bottom -fill x
+pack .root.conn.cmd.run -side right -fill y
+
+# .reconn - восстановление
+set reconn_app_index 0
+ttk::frame .root.reconn
+ttk::label .root.reconn.info
+ttk::frame .root.reconn.logon
+ttk::frame .root.reconn.cmd
+ttk::label .root.reconn.logon.conn_label
+ttk::label .root.reconn.logon.user_label
+if {[llength $apps] > 1} {
+    ttk::menubutton .root.reconn.logon.conn_menu
+} else {
+    ttk::label .root.reconn.logon.conn_menu -text ""
+}
+ttk::combobox .root.reconn.logon.user -state disabled -textvariable user_name -values $logins_list
+ttk::label .root.reconn.logon.pass_label
+ttk::entry .root.reconn.logon.pass -state disabled -textvariable user_pass
+bind .root.reconn.logon.pass <KeyPress-Return> {.root.reconn.cmd.run invoke}
+bind .root.reconn.logon.pass <KeyPress-KP_Enter> {.root.reconn.cmd.run invoke}
+ttk::button .root.reconn.cmd.run -state disabled
+
+# .reconn - настройка
+.root.reconn.info configure -text [subst [option get .root.reconn.info text *]]
+if {[llength $apps] > 0} {
+    .root.reconn.logon.user configure -state normal
+    .root.reconn.logon.pass configure -state normal
+    .root.reconn.cmd.run configure -state normal
+}
+catch {.root.reconn.logon.user current 0}
+if {[llength $apps] > 1} {
+    menu .root.reconn.logon.conn_menu.list -tearoff 0
+    foreach connection $apps {
+	.root.reconn.logon.conn_menu.list add command \
+	    -label [lindex $connection 2] \
+	    -command {
+		set reconn_app_index [.root.reconn.logon.conn_menu.list index active]
+		if {$reconn_app_index == "none"} {set reconn_app_index 0}
+		set conn_name [lindex $apps "$reconn_app_index 2"]
+		.root.reconn.logon.conn_menu configure -text $conn_name
+	    }
+    }
+
+    .root.reconn.logon.conn_menu configure -text [lindex $apps "$reconn_app_index 2"]
+    .root.reconn.logon.conn_menu configure -menu .root.reconn.logon.conn_menu.list
+    .root.reconn.logon.conn_menu.list activate $app_index
+    .root.reconn.logon.conn_menu.list invoke $app_index
+} else {
+    .root.reconn.logon.conn_menu configure -text [lindex $apps {0 2}]
+}
+.root.reconn.cmd.run configure -command {
+    tc_reconnect [lindex $apps $reconn_app_index] $user_name $user_pass
+    set user_pass ""
+}
+
+# .reconn - размещение
+set ipx [option get .root.reconn.logon ipadx *]
+set ipy [option get .root.reconn.logon ipady *]
+pack .root.reconn.info -side top -fill x
+pack .root.reconn.logon -side top -fill x -expand 1
+pack .root.reconn.cmd -side bottom -fill x
+grid .root.reconn.logon.conn_label .root.reconn.logon.conn_menu -ipadx $ipx -pady $ipy -sticky "w"
+grid .root.reconn.logon.user_label .root.reconn.logon.user -ipadx $ipx -pady $ipy -sticky "ew"
+grid .root.reconn.logon.pass_label .root.reconn.logon.pass -ipadx $ipx -pady $ipy -sticky "ew"
+grid columnconfigure .root.reconn.logon 1 -weight 1
+grid rowconfigure .root.reconn.logon 0 -weight 1
+grid rowconfigure .root.reconn.logon 1 -weight 1
+grid rowconfigure .root.reconn.logon 2 -weight 1
+pack .root.reconn.cmd.run -side right -fill y
+
+# .screen - настройка экрана
+set xrandr_dev_var ""
+set xrandr_index 0
+
+proc configure_dev_menu {xrandr index} {
+    .root.screen.tune.dev configure -text [lindex $xrandr $index 0]
+}
+
+proc configure_res_menu {res_menu res_label} {
+    .root.screen.tune.res configure -menu $res_menu -text $res_label
+    if {[[.root.screen.tune.res cget -menu] index end] == "none"} {
+	.root.screen.cmd.run configure -state disabled
+	.root.screen.tune.res configure -state disabled
+    } else {
+	.root.screen.cmd.run configure -state normal
+	.root.screen.tune.res configure -state normal
+    }
+}
+
+proc get_xrandr_dev {xrandr} {
+    set index [.root.screen.tune.dev.menu index active]
+    if {$index == "none"} {set index 0}
+    return $index
+}
+
+ttk::frame .root.screen
+ttk::label .root.screen.info
+.root.screen.info configure -text [subst [option get .root.screen.info text *]]
+ttk::frame .root.screen.tune
+ttk::frame .root.screen.cmd
+ttk::label .root.screen.tune.dev_label
+if {[llength $xrandr] > 1} {
+    ttk::menubutton .root.screen.tune.dev
+} else {
+    ttk::label .root.screen.tune.dev
+}
+ttk::label .root.screen.tune.res_label
+ttk::menubutton .root.screen.tune.res
+ttk::button .root.screen.cmd.run -command {
+    set xrandr_output [lindex $xrandr $xrandr_index 0]
+    set xrandr_mode [lindex [set m$xrandr_index] 0]
+    set xrandr_rate [lindex [set m$xrandr_index] 1]
+
+    set_xrandr $xrandr_output $xrandr_mode $xrandr_rate
+    
+    set size_spec [get_root_size]
+    thread::send $th1 "wm geometry . $size_spec"
+    thread::send $th1 "wm attributes . -fullscreen 1"
+    wm geometry . $size_spec
+    wm attributes . -fullscreen 1
+
+    update
+}
+
+# создаём набор меню с разрешениями экрана
+set index 0
+foreach dev $xrandr {
+    set m$index ""
+    set mm$index [menu .root.screen.tune.res.menu$index -tearoff 0]
+    set active_res [lindex $dev 2]
+
+    foreach mode [lindex $dev 1] {
+	[set mm$index] add radio -label $mode -value $mode -variable m$index -command ".root.screen.tune.res configure -text \"$mode\""
+    }
+    [set mm$index] invoke $active_res
+
+    incr index
+}
+
+# создаём меню экранов
+if {[llength $xrandr] > 1} {
+    menu .root.screen.tune.dev.menu -tearoff 0
+
+    set index 0
+    foreach dev $xrandr {
+	set label [lindex $dev 0]
+	.root.screen.tune.dev.menu add radio -label $label -value [set mm$index] -variable xrandr_dev_var -command {
+	    # заменить название у меню устройств и подключить новое меню к меню разрешений
+	    set xrandr_index [get_xrandr_dev $xrandr]
+	    configure_dev_menu $xrandr $xrandr_index
+	    configure_res_menu [set mm$xrandr_index] [set m$xrandr_index]
+	}
+	incr index
+    }
+    .root.screen.tune.dev.menu invoke 0
+
+    .root.screen.tune.dev configure -menu .root.screen.tune.dev.menu
+} elseif {[llength $xrandr] == 1} {
+    configure_dev_menu $xrandr $xrandr_index
+    configure_res_menu $mm0 $m0
+} else {
+    configure_res_menu [menu .root.screen.tune.res.menu -tearoff 0] ""
+}
+
+# .screen - размещение
+set ipx [option get .root.screen.tune ipadx *]
+set ipy [option get .root.screen.tune ipady *]
+pack .root.screen.info -side top -fill x
+pack .root.screen.tune -side top -fill x -expand 1
+pack .root.screen.cmd -side bottom -fill x
+grid .root.screen.tune.dev_label .root.screen.tune.dev -ipadx $ipx -pady $ipy -sticky "w"
+grid .root.screen.tune.res_label .root.screen.tune.res -ipadx $ipx -pady $ipy -sticky "w"
+grid columnconfigure .root.screen.tune 1 -weight 1
+grid rowconfigure .root.screen.tune 0 -weight 1
+grid rowconfigure .root.screen.tune 1 -weight 1
+pack .root.screen.cmd.run -side right -fill y
+
+# .usb - список USB устройств.
+ttk::frame .root.usb
+ttk::label .root.usb.info
+.root.usb.info configure -text [subst [option get .root.usb.info text *]]
+ttk::treeview .root.usb.dev -columns {manufacturer product serial} -show headings -yscroll ".root.usb.vsb set" -selectmode none
+.root.usb.dev heading manufacturer -text [option get .root.usb.dev manufacturer *]
+.root.usb.dev heading product -text [option get .root.usb.dev product *]
+.root.usb.dev heading serial -text [option get .root.usb.dev serial *]
+ttk::scrollbar .root.usb.vsb -orient vertical -command ".root.usb.dev yview"
+
+pack .root.usb.info -side top -fill x
+pack .root.usb.dev -side left -fill both -expand 1
+pack .root.usb.vsb -side right -fill y
+
+# .sound - настройка звука.
+proc set_amixer_value {numid values} {
+    catch {exec amixer cset "numid=$numid" "$values"}
+}
+
+proc set_amixer_int {cnum vnum val} {
+    global amixer_info
+
+    set numid [lindex $amixer_info $cnum 0]
+
+    lset amixer_info $cnum 4 $vnum $val
+    set value [lindex $amixer_info $cnum 4 0]
+    foreach val [lrange [lindex $amixer_info $cnum 4] 1 end] {
+	set value "${value},$val"
+    }
+    set_amixer_value $numid $value
+}
+
+proc set_amixer_bool {cnum vnum} {
+    global amixer_info
+    global sc${cnum}_${vnum}
+    global sframe
+
+    set numid [lindex $amixer_info $cnum 0]
+    set text [set sc${cnum}_${vnum}]
+
+    lset amixer_info $cnum 4 $vnum [set sc${cnum}_${vnum}]
+    set value [lindex $amixer_info $cnum 4 0]
+    foreach val [lrange [lindex $amixer_info $cnum 4] 1 end] {
+	set value "${value},$val"
+    }
+    set_amixer_value $numid $value
+    $sframe.f$cnum.l$vnum configure -text [get_bool_state $text]
+}
+
+proc get_bool_state {state} {
+    global on_value off_value
+
+    if {$state == "on"} {
+	return $on_value
+    } elseif {$state == "off"} {
+	return $off_value
+    } else {
+	return "?"
+    }
+}
+
+ttk::frame .root.sound
+ttk::label .root.sound.info
+.root.sound.info configure -text [subst [option get .root.sound.info text *]]
+
+ScrolledWindow .root.sound.controls -scrollbar both
+ScrollableFrame .root.sound.controls.frame -constrainedwidth 1
+.root.sound.controls setwidget .root.sound.controls.frame
+set sframe [.root.sound.controls.frame getframe]
+
+bind $sframe <Button-4> {.root.sound.controls.frame yview scroll -1 units}
+bind $sframe <Button-5> {.root.sound.controls.frame yview scroll  1 units}
+
+pack .root.sound.info -side top -fill x
+pack .root.sound.controls -side top -fill both -expand 1
+
+set on_value [option get .root.sound on *]
+set off_value [option get .root.sound off *]
+set cnum 0
+foreach item $amixer_info {
+
+    set numid [lindex $item 0]
+    set name [lindex $item 1]
+    set type [lindex $item 2]
+    set range [lindex $item 3]
+    set values [lindex $item 4]
+
+    ttk::label $sframe.l$cnum -text "$name"
+    ttk::frame $sframe.f$cnum -borderwidth 2 -relief groove
+
+    bind $sframe.l$cnum <Button-4> {.root.sound.controls.frame yview scroll -1 units}
+    bind $sframe.l$cnum <Button-5> {.root.sound.controls.frame yview scroll  1 units}
+    bind $sframe.f$cnum <Button-4> {.root.sound.controls.frame yview scroll -1 units}
+    bind $sframe.f$cnum <Button-5> {.root.sound.controls.frame yview scroll  1 units}
+
+
+    if {$type == "INTEGER"} {
+	set vnum 0
+
+	foreach val $values {
+	    set sc${cnum}_${vnum} $val
+	    set from [lindex $range 0]
+	    set to [lindex $range 1]
+
+	    scale $sframe.f$cnum.l$vnum -orient horizontal -from $from -to $to -showvalue 0 \
+		-variable sc${cnum}_${vnum} -command "set_amixer_int $cnum $vnum"
+	    ttk::label $sframe.f$cnum.i$vnum -text [set sc${cnum}_${vnum}] -textvariable sc${cnum}_${vnum} -width -3
+
+	    bind $sframe.f$cnum.l$vnum <Button-4> {.root.sound.controls.frame yview scroll -1 units}
+	    bind $sframe.f$cnum.l$vnum <Button-5> {.root.sound.controls.frame yview scroll  1 units}
+
+	    bind $sframe.f$cnum.i$vnum <Button-4> {.root.sound.controls.frame yview scroll -1 units}
+	    bind $sframe.f$cnum.i$vnum <Button-5> {.root.sound.controls.frame yview scroll  1 units}
+
+
+	    grid $sframe.f$cnum.l$vnum $sframe.f$cnum.i$vnum
+	    grid $sframe.f$cnum.l$vnum -sticky wens
+	    grid $sframe.f$cnum.i$vnum -sticky we
+	    grid columnconfigure $sframe.f$cnum 0 -weight 1
+
+	    incr vnum
+	}
+    } elseif {$type == "BOOLEAN"} {
+	set vnum 0
+
+	foreach val $values {
+	    set sc${cnum}_${vnum} [lindex $amixer_info $cnum 4 $vnum]
+
+	    ttk::checkbutton $sframe.f$cnum.l$vnum -text [get_bool_state $val] -onvalue on -offvalue off -variable sc${cnum}_${vnum} \
+		-command "set_amixer_bool $cnum $vnum"
+
+	    bind $sframe.f$cnum.l$vnum <Button-4> {.root.sound.controls.frame yview scroll -1 units}
+	    bind $sframe.f$cnum.l$vnum <Button-5> {.root.sound.controls.frame yview scroll  1 units}
+ 
+	    pack $sframe.f$cnum.l$vnum -side top -anchor w -fill x -expand 1
+
+	    incr vnum
+	}
+    }
+
+    grid $sframe.l$cnum $sframe.f$cnum -pady 2
+    grid $sframe.l$cnum -sticky we
+    grid $sframe.f$cnum -sticky wens
+
+    incr cnum
+}
+grid columnconfigure $sframe 1 -weight 1
+
+
+#after 5000
+update_usb_devices
+
+# Выключение, перезагрузка, обновление и прочие ...
+set cmd_menu ""
+ttk::frame .root.cmd
+ttk::button .root.cmd.power -command {exit_cmd poweroff}
+ttk::menubutton .root.cmd.action -style CMD.TMenubutton -menu .root.cmd.action.menu -direction above
+menu .root.cmd.action.menu -tearoff 0
+.root.cmd.action.menu add radio -variable cmd_menu -label [option get .root.cmd.action.menu connect *] -command {activate connect}
+.root.cmd.action.menu add radio -variable cmd_menu -label [option get .root.cmd.action.menu reconnect *] -command {activate reconnect}
+.root.cmd.action.menu add separator
+.root.cmd.action.menu add radio -variable cmd_menu -label [option get .root.cmd.action.menu tscreen *] -command {activate tscreen}
+.root.cmd.action.menu add radio -variable cmd_menu -label [option get .root.cmd.action.menu tsound *] -command {activate tsound}
+.root.cmd.action.menu add radio -variable cmd_menu -label [option get .root.cmd.action.menu tusb *] -command {activate tusb}
+.root.cmd.action.menu add separator
+if {$arg_debug == "debug"} {
+    .root.cmd.action.menu add command -label [option get .root.cmd.action.menu debug *] \
+	-command {
+	    wm state . withdrawn
+	    catch {exec "/usr/bin/xvt" "-g" "90x30"}
+	    wm state . normal
+	}
+    .root.cmd.action.menu add separator
+}
+.root.cmd.action.menu add command -label [option get .root.cmd.action.menu poweroff *] -command {exit_cmd poweroff}
+.root.cmd.action.menu add command -label [option get .root.cmd.action.menu reboot *] -command {exit_cmd reboot}
+.root.cmd.action.menu add command -label [option get .root.cmd.action.menu update *] -command {exit_cmd update}
+
+# Информационное сообщение
+ttk::frame .root.log
+ttk::label .root.log.info
+pack .root.log.info -fill x -expand 1
+
+# заголовок
+pack .root -fill both -expand 1
+pack .root.head -side top -fill x
+pack .root.head.host -side left -expand 1
+pack .root.head.clock -side left
+update_timer
+
+# autologon
+if {[file readable $autologon_file] && $arg_xrandr != "xrandr"} {
+    .root.conn.cmd.run invoke
+}
+
+pack .root.cmd -side right -anchor s
+pack .root.cmd.action .root.cmd.power -side right -fill y
+
+place_log_frame ""
+update
+if {$arg_xrandr == "xrandr"} {
+    .root.cmd.action.menu invoke 3
+    #place_main_frame .root.screen
+} else {
+    .root.cmd.action.menu invoke 0
+    #place_main_frame .root.conn
+}
+update
+
+wm geometry . $size_spec
+wm attributes . -fullscreen 1

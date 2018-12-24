@@ -1,0 +1,6 @@
+#!/bin/sh
+
+ADDRESS=$1
+
+mkdir -p /run/network/$INTERFACE
+echo $1 > /run/network/$INTERFACE/address

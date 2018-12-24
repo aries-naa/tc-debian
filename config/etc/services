@@ -1,0 +1,4 @@
+time	37/tcp
+time	37/udp
+ntp	123/tcp
+ntp	123/udp

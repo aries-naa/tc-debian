@@ -1,0 +1,56 @@
+#!/bin/sh
+
+echo ... mount filesystems ...
+
+mount -t sysfs -o nodev,noexec,nosuid none /sys
+mount -t proc -o nodev,noexec,nosuid none /proc
+mount -t devtmpfs -o mode=0755 none /dev
+[ -d /dev/pts ] || mkdir -m 0755 /dev/pts
+mount -t devpts -o noexec,nosuid,gid=5,mode=0620 none /dev/pts
+
+# /etc
+mount -t tmpfs tmpfs /tmp
+cp -ar /etc /tmp
+mount -t tmpfs tmpfs /etc
+cp -ar /tmp/etc /
+umount /tmp
+
+# /run
+mount -t tmpfs tmpfs /tmp
+cp -ar /run /tmp
+mount -t tmpfs tmpfs /run
+cp -ar /tmp/run /
+umount /tmp
+
+# /var
+mount -t tmpfs tmpfs /tmp
+cp -ar /var /tmp
+mount -t tmpfs tmpfs /var
+cp -ar /tmp/var /
+umount /tmp
+
+# /mnt
+mount -t tmpfs tmpfs /tmp
+cp -ar /mnt /tmp
+mount -t tmpfs tmpfs /mnt
+cp -ar /tmp/mnt /
+umount /tmp
+
+# /root
+mount -t tmpfs tmpfs /tmp
+cp -ar /root /tmp
+mount -t tmpfs tmpfs /root
+cp -ar /tmp/root /
+umount /tmp
+
+# /.ICAClient
+#mount -t tmpfs tmpfs /.ICAClient 
+
+# /media
+#mount -t tmpfs tmpfs /media
+
+# /tmp
+mount -t tmpfs tmpfs /tmp
+
+# /etc/mtab
+ln -sf /proc/mounts /etc/mtab

@@ -1,0 +1,33 @@
+#!/bin/sh
+
+# первичный запуск сети
+echo ... configuring network ...
+
+ifconfig lo up
+
+for iface_dir in /run/network/*; do
+    if [ -d $iface_dir ]; then
+	iface=$(basename $iface_dir)
+	ifconfig $iface 0 up
+	udhcpc -i $iface -s /usr/local/sbin/udhcpc -O rootpath -O ntpsrv -S -t 15 -n
+    fi
+done
+
+# собрать /etc/resolv.conf
+echo -n > /etc/resolv.conf
+(
+    for iface_dir in /run/network/*; do
+	if [ -f "$iface_dir/search" ]; then
+	    cat "$iface_dir/search" | xargs -n 1 echo search
+
+	fi
+    done
+) | sort -u >> /etc/resolv.conf
+
+(
+    for iface_dir in /run/network/*; do
+	if [ -f "$iface_dir/nameserver" ]; then
+	    cat "$iface_dir/nameserver" | xargs -n 1 echo nameserver
+	fi
+    done
+) | sort -u >> /etc/resolv.conf

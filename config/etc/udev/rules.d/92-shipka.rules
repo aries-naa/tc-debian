@@ -1,0 +1,5 @@
+# инициализация устройств.
+ACTION=="add", ATTRS{idVendor}=="17e4", ATTRS{idProduct}=="0003|0032|0035|0051" ,RUN+="/usr/local/sbin/setup-shipka", ENV{X_SHIPKA}="SHIPKA"
+
+# разрешить только 4 раздел.
+#ACTION=="add", ENV{X_SHIPKA}=="SHIPKA", ATTRS{partition}!="4", TAG="disable"

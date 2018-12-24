@@ -1,0 +1,7 @@
+#!/bin/sh
+
+echo ... stop removable media ...
+
+if [ -r /etc/udev/rules.d/91-whitelist.rules ]; then
+    rm /etc/udev/rules.d/91-whitelist.rules
+fi

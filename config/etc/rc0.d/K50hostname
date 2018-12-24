@@ -1,0 +1,13 @@
+#!/bin/sh
+
+echo ... stop hostname, domainname ...
+
+echo tc-default > /etc/hostname
+echo 127.0.0.1 tc localhost > /etc/hosts
+
+if [ -r /etc/domain-name ]; then
+    rm /etc/domain-name
+fi
+if [ -r /tmp/.tc_config ]; then
+    rm /tmp/.tc_config
+fi

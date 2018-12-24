@@ -1,0 +1,7 @@
+#!/bin/sh
+
+echo ... stop xrdb ...
+
+if [ -f $HOME/.tk-tcmain ]; then
+    rm $HOME/.tk-tcmain
+fi

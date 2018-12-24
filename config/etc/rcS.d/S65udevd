@@ -1,0 +1,10 @@
+#!/bin/sh
+
+echo ... udevd trigger ...
+
+udevadm control --reload-rules
+
+# повторная загрузка устройств
+# udev добавит локальные принтера с их windows-драйверами.
+udevadm trigger --action=add
+udevadm settle

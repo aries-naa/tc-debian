@@ -1,0 +1,6 @@
+#!/bin/sh
+
+echo ... acpid ...
+
+# acpid - выключение по нажатию кнопки питания
+/usr/sbin/acpid -p /var/run/acpid.pid

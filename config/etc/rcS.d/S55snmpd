@@ -1,0 +1,7 @@
+#!/bin/sh
+
+echo ... snmpd ...
+
+if [ -f /etc/snmp/snmpd.conf ]; then
+    /usr/sbin/snmpd.mini -c /etc/snmp/snmpd.conf -p /var/run/snmpd.pid
+fi

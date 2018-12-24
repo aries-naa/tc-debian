@@ -1,0 +1,20 @@
+#!/usr/bin/env tclsh
+
+package require inifile
+
+set printer_model [lindex $argv 0]
+set printer_driver ""
+
+if {$printer_model == ""} {
+    exit 0
+}
+
+if {[catch {::ini::open /etc/printers "r"} config_fd] == 0} {
+    catch {array set printers [::ini::get $config_fd "printers"]}
+    catch {set printer_driver $printers($printer_model)}
+    ::ini::close $config_fd
+}
+
+if {$printer_driver != ""} {
+    puts $printer_driver
+}

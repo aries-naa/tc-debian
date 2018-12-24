@@ -1,0 +1,6 @@
+#!/bin/sh
+
+echo ... pcscd ...
+
+# pcscd - устройства чтения смарт-карт
+/usr/sbin/pcscd

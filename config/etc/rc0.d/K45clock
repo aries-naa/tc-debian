@@ -1,0 +1,21 @@
+#!/bin/sh
+
+echo ... hwclock ...
+
+if [ -r /etc/localtime-utc ]; then
+    hwclock -w -u
+else
+    hwclock -w -l
+fi
+
+if [ -r /etc/ntp-server ]; then
+    rm -f /etc/ntp-server
+fi
+
+if [ -r /etc/rdate-server ]; then
+    rm -f /etc/rdate-server
+fi
+
+if [ -r /etc/localtime-utc ]; then
+    rm -f /etc/localtime-utc
+fi

@@ -1,0 +1,32 @@
+#!/bin/sh
+
+# lp local|network printer spool local|address port
+
+syslog_tag=TERMINAL.`hostname`
+
+spool_dir=/var/spool/lpd
+
+type=$1
+printer=$2
+spool=$3
+address=$4
+port=""
+if [ "$type" == "network" ]; then
+    port=$5
+fi
+printer_lock=`echo $printer | md5sum | awk '{print $1}'`
+
+logger -t $syslog_tag "Queue $spool to $printer"
+
+if [ "$type" == "network" ]; then
+    logger -t $syslog_tag "Print $spool to $printer $address:$port"
+    /usr/bin/flock "$spool_dir/$printer_lock" nc -w 120 "$address" "$port" < "$spool"
+    logger -t $syslog_tag "Print $spool to $printer $address:$port finished"
+else
+    logger -t $syslog_tag "Print $spool to $printer $address"
+    /usr/bin/flock "$spool_dir/$printer_lock" cat > "$address" < "$spool"
+    logger -t $syslog_tag "Print $spool to $printer $address finished"
+fi
+rm $spool
+
+exit 0

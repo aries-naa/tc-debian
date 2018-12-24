@@ -1,0 +1,8 @@
+#!/bin/sh
+
+echo ... stop acpid ...
+
+# acpid pid file
+acpid_pid=$(cat /var/run/acpid.pid)
+
+kill -9 $acpid_pid

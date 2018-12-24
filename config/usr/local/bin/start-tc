@@ -1,0 +1,33 @@
+#!/bin/sh
+
+HOME=/root
+export HOME
+
+syslog_tag=TERMINAL.`hostname`
+
+# umask 0000 - для решения проблемы снятия атрибута read-only и решения
+# проблемы удаления read-only файлов.
+umask 0000
+
+#command=$(/usr/bin/xinit /usr/bin/jwm)
+command=$(/usr/bin/xinit /usr/bin/xvt)
+#command=$(/usr/bin/xinit /usr/local/bin/starter)
+retcode=$?
+if [ "$retcode" = "0" ]; then
+    if [ "$command" = "poweroff" ]; then
+	logger -t $syslog_tag "Poweroff"
+	sleep 1
+	/sbin/poweroff
+    elif [ "$command" = "reboot" ]; then
+	logger -t $syslog_tag "Reboot"
+	sleep 1
+	/sbin/reboot
+    elif [ "$command" = "update" ]; then
+	logger -t $syslog_tag "Update configuration"
+	sleep 1
+	kill -QUIT 1
+    fi
+else
+    echo exit code: $retcode
+    /bin/sh
+fi

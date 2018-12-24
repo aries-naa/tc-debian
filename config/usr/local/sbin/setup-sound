@@ -1,0 +1,6 @@
+#!/bin/sh
+
+if [ -n "$DEVNAME" ]; then
+    chown root:users "$DEVNAME"
+    chmod ug+rw "$DEVNAME"
+fi

@@ -1,0 +1,71 @@
+#!/bin/sh
+# monitor-cd /dev/devname check-timeout
+
+syslog_tag=TERMINAL.`hostname`
+
+logger -t $syslog_tag "Monitor cd: exec $0"
+
+common_opts="nodev,noexec"
+ntfs_opts="$common_opts,uid=1000,gid=100,umask=0111,fmask=0111,dmask=0000"
+vfat_opts="$common_opts,utf8,iocharset=iso8859-1,uid=1000,gid=100,fmask=0111,dmask=0000"
+ext4_opts="$common_opts,nosuid"
+xfs_opts="$common_opts,nosuid"
+udf_opts="$common_opts,uid=1000,gid=100"
+iso_opts="$common_opts,uid=1000,gid=100"
+
+dev_name=$1
+check_timeout=$2
+# Каталог в /media
+media_path=/mnt/media/`basename $dev_name`
+
+[ -n "$dev_name" ] || exit 1
+[ -n "$check_timeout" ] || exit 1
+
+dev_not_ready () {
+    cd_media=`/lib/udev/cdrom_id $dev_name | grep ID_CDROM_MEDIA=`
+    if [ -z "$cd_media" ]; then
+	return 0
+    fi
+    return 1
+}
+
+mount_media () {
+    is_mounted=`mount | grep "^$dev_name "`
+    if [ -z "$is_mounted" ]; then
+	logger -t $syslog_tag "Monitor cd: $DEVNAME"
+        mount -t iso9660 -o $iso_opts  $dev_name $media_path && { logger -t $syslog_tag "Monitor cd: $DEVNAME to $media_path as iso9660"; return 0; }
+        mount -t udf     -o $udf_opts  $dev_name $media_path && { logger -t $syslog_tag "Monitor cd: $DEVNAME to $media_path as udf";     return 0; }
+        mount -t vfat    -o $vfat_opts $dev_name $media_path && { logger -t $syslog_tag "Monitor cd: $DEVNAME to $media_path as vfat";    return 0; }
+        mount -t ext4    -o $ext4_opts $dev_name $media_path && { logger -t $syslog_tag "Monitor cd: $DEVNAME to $media_path as ext4";    return 0; }
+        mount -t xfs     -o $xfs_opts  $dev_name $media_path && { logger -t $syslog_tag "Monitor cd: $DEVNAME to $media_path as xfs";     return 0; }
+        ntfs-3g          -o $ntfs_opts $dev_name $media_path && { logger -t $syslog_tag "Monitor cd: $DEVNAME to $media_path as ntfs-3g"; return 0; }
+    fi
+}
+
+umount_media () {
+    # Точка монтирования удаляемого устройства
+    mount_point=`mount | grep "^$dev_name " | awk '{print $3}'`
+
+    if [ -n "$mount_point" ]; then
+        # Каталог в /media и точка монтирования должны совпадать.
+	if [ "$media_path" = "$mount_point" ]; then
+	    logger -t $syslog_tag "Monitor cd: umount $mount_point from $DEVNAME"
+            umount -lf "$mount_point"
+	fi
+    fi
+}
+
+while true; do
+    if [ ! -e "$dev_name" ]; then
+	umount_media
+	exit 0
+    fi
+
+    if dev_not_ready; then
+	umount_media
+    else
+	mount_media
+    fi
+
+    sleep $check_timeout
+done

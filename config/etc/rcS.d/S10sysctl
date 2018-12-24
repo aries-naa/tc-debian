@@ -1,0 +1,10 @@
+#!/bin/sh
+
+echo ... sysctl settings ...
+
+# Для быстрого сброса дискового кэша.
+# Сменные носители монтируются асинхронно.
+# Отключать можно через ~5 сек. после окончания записи.
+# Для надежности ждём 10 сек.
+sysctl -w vm.dirty_writeback_centisecs=150
+sysctl -w vm.dirty_expire_centisecs=300

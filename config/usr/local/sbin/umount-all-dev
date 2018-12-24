@@ -1,0 +1,24 @@
+#!/bin/sh
+
+syslog_tag=TERMINAL.`hostname`
+
+logger -t $syslog_tag "Umount all media: exec $0"
+
+# завершаем работу monitor-cd и monitor floppy
+killall -9 monitor-cd
+killall -9 monitor-floppy
+
+# umount
+mounts=`mount | awk '// {print $3 " " $1}' |\
+        awk '/^\/mnt\/media\/.+/ {print $2}'`
+for mount_dev in $mounts; do
+    DEVNAME=$mount_dev /usr/local/sbin/umount-dev
+done
+
+# удаляем следы в /media
+for removable in /mnt/media/*; do
+    if [ -f "$removable"/.media ]; then
+	rm    "$removable"/.media
+        rmdir "$removable"
+    fi
+done

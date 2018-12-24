@@ -1,0 +1,12 @@
+#!/bin/sh
+
+echo ... alsa ...
+
+# настройка уровня звука.
+
+modprobe snd_mixer_oss
+modprobe snd_pcm_oss
+
+if [ -r /etc/sound ]; then
+    cat /etc/sound | /usr/bin/amixer -s > /dev/null
+fi

@@ -1,0 +1,8 @@
+#!/bin/sh
+
+echo ... stop pcscd ...
+
+# pcscd pid file
+pcscd_pid=$(cat /var/run/pcscd/pcscd.pid)
+
+kill -9 $pcscd_pid

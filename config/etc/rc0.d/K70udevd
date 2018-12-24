@@ -1,0 +1,6 @@
+#!/bin/sh
+
+echo ... stop udevd ...
+
+killall -9 udevd
+umount /proc/bus/usb

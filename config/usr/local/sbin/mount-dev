@@ -1,0 +1,68 @@
+#!/bin/sh
+
+syslog_tag=TERMINAL.`hostname`
+
+logger -t $syslog_tag "Mount device: exec $0"
+
+common_opts="nodev,noexec"
+ntfs_opts="$common_opts,uid=1000,gid=100,umask=0111,fmask=0111,dmask=0000"
+vfat_opts="$common_opts,utf8,iocharset=iso8859-1,uid=1000,gid=100,fmask=0111,dmask=0000"
+ext4_opts="$common_opts,nosuid"
+xfs_opts="$common_opts,nosuid"
+udf_opts="$common_opts,uid=1000,gid=100"
+iso_opts="$common_opts,uid=1000,gid=100"
+
+media_type=$1
+
+is_mounted=`mount | grep "^$DEVNAME "`
+
+if [ -z "$is_mounted" ]; then
+
+    # Создаём каталог в /media
+    media_path=/mnt/media/`basename $DEVNAME`
+    if [ ! -d "$media_path" ]; then
+	mkdir -p "$media_path"
+	touch "$media_path"/.media
+	logger -t $syslog_tag "Mount device: create mount point $media_path"
+    fi
+
+    # Если нет файла - то каталог чем-то занят - ничего не делаем.
+    if [ ! -f "$media_path"/.media ]; then
+	logger -t $syslog_tag "Mount device: mount point $media_path busy"
+	exit 0
+    fi
+
+    # проверка наличия разделов
+    part_count=$(find /sys/block/$(basename $DEVNAME)/ -name partition | wc -l)
+    [ "$part_count" = "0" ] || exit 0
+
+    # Монтируем.
+    if [ "$media_type" = "disk" ]; then
+	logger -t $syslog_tag "Mount device: disk $DEVNAME"
+	ntfs-3g          -o $ntfs_opts $DEVNAME $media_path && { logger -t $syslog_tag "Mount device: $DEVNAME to $media_path as ntfs-3g"; exit 0; }
+	mount -t vfat    -o $vfat_opts $DEVNAME $media_path && { logger -t $syslog_tag "Mount device: $DEVNAME to $media_path as vfat";    exit 0; }
+	mount -t ext4    -o $ext4_opts $DEVNAME $media_path && { logger -t $syslog_tag "Mount device: $DEVNAME to $media_path as ext4";    exit 0; }
+        mount -t xfs     -o $xfs_opts  $DEVNAME $media_path && { logger -t $syslog_tag "Mount device: $DEVNAME to $media_path as xfs";     exit 0; }
+	mount -t udf     -o $udf_opts  $DEVNAME $media_path && { logger -t $syslog_tag "Mount device: $DEVNAME to $media_path as udf";     exit 0; }
+	mount -t iso9660 -o $iso_opts  $DEVNAME $media_path && { logger -t $syslog_tag "Mount device: $DEVNAME to $media_path as iso9660"; exit 0; }
+    fi
+    
+    if [ "$media_type" = "floppy" ]; then
+	logger -t $syslog_tag "Mount device: monitor floppy $DEVNAME"
+	/usr/local/sbin/monitor-floppy $DEVNAME 3 &
+	exit 0
+    fi
+    
+    if [ "$media_type" = "cd" ]; then
+	logger -t $syslog_tag "Mount device: monitor cd $DEVNAME"
+	/usr/local/sbin/monitor-cd $DEVNAME 3 &
+	exit 0
+    fi
+
+    # Удаляем каталог в /media
+    if [ -f "$media_path"/.media ]; then
+	logger -t $syslog_tag "Umount media: delete mount point $media_path"
+	rm    "$media_path"/.media
+	rmdir "$media_path"
+    fi
+fi

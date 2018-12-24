@@ -1,0 +1,11 @@
+#!/bin/sh
+
+syslog_tag=TERMINAL.`hostname`
+
+logger -t $syslog_tag "Setup shipka: exec $0"
+
+if [ -n "$DEVICE" ]; then
+    chown user:users "$DEVICE"
+    chmod ug+rw "$DEVICE"
+    logger -t $syslog_tag "Setup shipka: $DEVICE, serial: $ID_SERIAL_SHORT"
+fi

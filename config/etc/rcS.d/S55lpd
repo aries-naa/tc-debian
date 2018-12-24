@@ -1,0 +1,7 @@
+#!/bin/sh
+
+echo ... lpd ...
+
+modprobe parport
+modprobe parport_pc
+modprobe lp

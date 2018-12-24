@@ -1,0 +1,59 @@
+#!/bin/sh
+
+syslog_tag=TERMINAL.$(hostname)
+
+logger -t $syslog_tag "Update printcap: exec $0 $@"
+
+product=$2
+action=$1
+
+if [ "$action" != "del" -a "$action" != "add" ]; then
+    logger -t $syslog_tag "Update printcap: unknown action: $action - exiting"
+    exit 0
+fi
+
+printer_dev=$DEVNAME
+if [ -z "$printer_dev" ]; then
+    logger -t $syslog_tag "Update printcap: empty DEVNAME - exiting"
+    exit 0
+fi
+
+logger -t $syslog_tag "Update printcap: $action $product $DEVNAME"
+
+del_driver() {
+    
+    local printer_dev=$1
+    logger -t $syslog_tag "Update printcap: delete $printer_dev"
+    if /usr/local/sbin/printer-del -v to_delete=$printer_dev > /etc/printcap.new < /etc/printcap; then
+	mv -f /etc/printcap.new /etc/printcap
+    else
+	logger -t $syslog_tag "Update printcap: cant delete printer $printer_dev - exiting"
+	exit 0
+    fi
+    
+}
+
+if [ "$action" = "add" ]; then
+    
+  if [ -z "$product" ]; then
+      exit 0
+  fi
+  
+  printer_name="$product - $printer_dev"
+  printer_driver=$(/usr/local/sbin/get-printer-driver "$product")
+
+  del_driver $printer_dev
+  logger -t $syslog_tag "Update printcap: add $printer_dev $product with driver $printer_driver"
+  
+  cat >> /etc/printcap << EOF
+$printer_name:lp=$printer_dev:wd=$printer_driver:
+EOF
+
+fi
+
+if [ "$action" = "del" ]; then
+    
+    del_driver $printer_dev
+fi
+
+exit 0

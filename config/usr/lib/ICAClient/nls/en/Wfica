@@ -1,0 +1,650 @@
+! Client Apps Defaults File.
+! This file is necessary for the correct running of the client.
+!
+! Copyright 1998-2009 Citrix Systems, Inc. All rights reserved.
+
+Wfica*international: True
+! Disable internationalized Athena widgets in the Proxy dialog.
+! This is to avoid a problem in the internationalized version of
+! XawTextSourceScan compiled with the FORTIFY_SOURCE option.
+Wfica*ProxyAuthDialog.ProxyUsername*international: False
+Wfica*ProxyAuthDialog.ProxyPassword*international: False
+
+!
+! Error Dialog resource settings (English)
+!
+
+Wfica*EDialog_popup.title:		Client Error
+Wfica*EDialog.okLabelString:		OK
+Wfica*EDialog.cancelLabelString:	Cancel
+Wfica*EDialog.helpLabelString:		Quit
+! Athena
+Wfica*EDialog.okLabelString.label:	OK
+Wfica*EDialog.cancelLabelString.label:	Cancel
+Wfica*EDialog.helpLabelString.label:	Quit
+
+!
+! Info Dialog resource settings (English)
+!
+
+Wfica*IDialog_popup.title:		Client Information
+Wfica*IDialog.okLabelString:		OK
+Wfica*IDialog.cancelLabelString:	Cancel
+Wfica*IDialog.helpLabelString:		Quit
+! Athena
+Wfica*IDialog.okLabelString.label:	OK
+Wfica*IDialog.cancelLabelString.label:	Cancel
+Wfica*IDialog.helpLabelString.label:	Quit
+
+!
+! Info Text Dialog resource settings (English)
+!
+
+Wfica*ITDialog_popup.title:		Client Information
+Wfica*ITDialog.okLabelString:		OK
+
+!
+! Client Error and Information String Definitions (English)
+!
+
+Wfica*INVALID_ERROR_TYPE_0:     Unrecognised error.
+Wfica*E_INTERNAL_ERROR:		An internal error occurred in the client.
+Wfica*E_MUTUALLY_EXCLUSIVE:	Options \"%s\" and \"%s\" are mutually exclusive.
+Wfica*E_BAD_OPTION:			The option \"%s\" is invalid.
+Wfica*E_MISSING_ARG:		Missing argument for option \"%s\".
+Wfica*E_BAD_ARG:			The option \"%s\" has an invalid\nargument: \"%s\"
+Wfica*E_MEMORY:			Enough memory is not available.
+Wfica*E_CLIPPING:			Internal error: E_CLIPPING.
+Wfica*E_NO_ENCRYPTION:          Could not find encryption module \"%s\". Session will be unencrypted.
+Wfica*E_COULDNT_SHARE_SESSION:	Could not launch app \"%s\" \nusing existing session - a new session will be used.
+Wfica*E_CANNOT_READ_INI_FILE:	Cannot read file:\n  \"%s\"
+Wfica*E_MISSING_INI_SECTION:	Error in configuration file:\n  \"%s\"\nCannot find section \"%s\".
+Wfica*E_MISSING_INI_ENTRY:	        Error in configuration file.\nSection \"%s\" must contain an entry \"%s\".
+Wfica*E_DUPLICATE_ASSOCIATION:	Application \"%s\" is already associated with file type \"%s\".
+Wfica*E_NO_ASSOCIATION:		No application is associated with file type \"%s\".
+Wfica*E_VISUAL_NOT_FOUND:	This terminal does not support selected colormode.
+Wfica*E_COLOURMAP_BEYOND_VISUAL:	The visual (ID = %d) cannot support\nthe required number of colors.
+Wfica*E_CANT_FIND_PCSC_LIBRARY:	Cannot load PCSC library \"%s\".
+Wfica*E_SSL_GENERIC:		%s
+Wfica*E_BAD_COLOR_ALLOC:		Unable to allocate a private colormap\non this display.
+Wfica*E_NCS_INFO_PROPERTY_CORRUPTED:  NCS_16COLORS_INFO property corrupted.\nThe color information for all other clients using 16 colors will be inconsistent.
+Wfica*E_BAD_ERROR_CODE:		Unrecognised error code (%s).
+Wfica*E_CSM_NO_APP_FOR_CONTENT:	No suitable published application found for this published content.
+Wfica*E_CANT_GET_SUNRAY_ID:	Cannot get SunRay host id.
+Wfica*E_NO_KBD_MAPPING:		Cannot find keyboard mapping file\n  \"%s\".
+Wfica*E_CSM_MUST_SPECIFY_SERVER:	You must enter a server.
+Wfica*E_CSM_INVALID_WINDOW_SIZE:	Window Size must be\nbetween 300 and 32767.
+Wfica*E_CSM_SCREENPERCENT_ERROR:	Screen Percentage must be between 0 and 100.
+Wfica*E_KEYLOGGING_IN_USE:	        Key logging is in use.
+Wfica*E_SUSPECT_KEY:		The file \"%s\" \nmay compromise security with the line \n\"%s\".
+Wfica*E_CSM_INVALID_SERIAL_NUMBER:  Invalid serial number.
+Wfica*E_CANNOT_WRITE_FILE:	Cannot write file:\n\"%s\"\n%s.
+Wfica*E_CANNOT_CREATE_FILE:	Cannot create file:\n\"%s\"\n%s.
+Wfica*E_XERROR:			The X Request %s caused\nerror: \"%s\".
+Wfica*E_INSTALLATION_LOCATION_NOT_ALLOWED: You are not allowed to use the installation location '%s'.\nInstallation locations must be below '%s'.
+Wfica*E_DEVICE_NOT_PRESENT:	%s device file %s is not present.
+Wfica*E_DEVICE_NO_PERMISSION:	You do not have permission to open %s device %s.
+Wfica*E_FORK_FAIL:		Unable to start child program.\nFork failed with error %s.
+Wfica*E_CANNOT_LOAD_ATHENA:     Cannot load the Athena library.
+Wfica*E_CSM_OPEN_ORIGINAL_INI_FAILED: Cannot read file:\n  \"%s\"
+
+Wfica*E_CSM_CONNECTLIST_INVALID:	Cannot find selected connection.
+Wfica*E_CSM_CONNECTION_NOTFOUND:	Cannot find selected connection.
+Wfica*E_CSM_INVALID_CONNECTION:		Connection \"%s\" contains invalid characters.
+Wfica*E_CSM_APPSERVERLIST_MISSING:	Error in configuration file:\n  \"%s\"\nMissing section:\n  \"%s\".
+Wfica*E_CSM_APPSRV_SECTION_MISSING:	Inconsistency in configuration file: \n  \"%s\"\nMissing section:\n  \"%s\".
+Wfica*E_PNAGENT_NLS_CATALOGUE_UNREADABLE: The Citrix XenApp NLS catalog \"%s\" is missing or corrupt.
+Wfica*E_CSM_NO_APPLICATIONS:	No applications were found.
+Wfica*E_CSM_DESCRIPTION_NONUNIQUE:	This description is already in use.\nThe Description field must be unique.
+Wfica*E_NOT_USED1:	not used
+Wfica*E_FIND_FAIL:		Cannot locate executable file\n  \"%s\"\n  (%s)
+Wfica*E_EXEC_FAIL:		Cannot execute file\n  \" %s\"\n  (%s)
+Wfica*E_APPLICATION_NAMELOOKUP_FAILURE:	Cannot get address for application \"%s\"\n\n%s
+Wfica*E_SERVER_NAMELOOKUP_FAILURE:	Cannot get address for server \"%s\"\n\n%s
+Wfica*E_SERVER_CONNECTION_FAILURE:	No connection to \"%s\"\n\n%s
+Wfica*E_HOST_DCNX_NO_THINWIRE:	The server has disconnected.\nThis may be caused by failing to obtain a Microsoft Client Access License for a Windows server\nor the requested window size may not be supported by this server.
+Wfica*E_CSM_NO_MASTER_BROWSER:	A Master Browser could not be located.
+Wfica*E_CSM_NO_SERVERS:		No servers were found.
+
+! errors produced by the name resolver
+
+Wfica*E_BR_ERROR_INVALID_HEADER:	Invalid server browser command header received.
+Wfica*E_BR_ERROR_INVALID_COMMAND:	Invalid server browser command received.
+Wfica*E_BR_ERROR_INVALID_REPLY:       not used
+Wfica*E_BR_ERROR_INVALID_SEQUENCE:	Invalid server browser command sequence received.
+Wfica*E_BR_ERROR_INVALID_PARAMETER:	Server browser command contains an invalid parameter.
+Wfica*E_BR_ERROR_NOT_ENOUGH_MEMORY:	Not enough memory.
+Wfica*E_BR_ERROR_IO_ERROR:	An I/O (Input/Output) error occurred while your request was being processed.\n\nTry to connect again. If you continue to receive this message, contact your Citrix administrator.
+Wfica*E_BR_ERROR_READ_TIMEOUT:	A read failed with a timeout.
+Wfica*E_NOT_ALLOWED:	The server does not allow this operation.
+Wfica*E_BR_ERROR_TCP_NOT_AVAILABLE:	TCP/IP protocol is not available.
+Wfica*E_NOT_SUPPORTED:	The server does not support this operation.
+Wfica*E_BR_ERROR_DATABASE_LOCATE:	The server you have selected cannot be located.
+Wfica*E_BR_ERROR_CLUSTER_LOCATE:	The server cluster you have selected cannot be located.
+Wfica*E_BR_ERROR_NO_MASTER:	Unable to contact the server browser.  Either your network is not functioning, or you need to configure an address under Server Location.
+Wfica*E_BR_ERROR_ALTADDRESS_NOT_DEFINED:	The server you are trying to reach is not configured with an alternate address.\n\nCheck your connection settings or contact your Citrix administrator.
+Wfica*E_BR_ERROR_APPLICATION_DISABLED:		The application you requested is not enabled. For more information, contact your Citrix administrator.
+Wfica*E_BR_ERROR_APPLICATION_LOCATE:		The application you requested is no longer available. For more information, contact your Citrix administrator.
+Wfica*E_BR_ERROR_HOST_UNREACHABLE:		A server-side network error occurred.\n\nTry to connect again. If you continue to receive this message, contact your Citrix administrator.
+Wfica*E_BR_ERROR_IMA_UNKNOWN_ERROR:		An unknown error occurred on the Citrix XenApp server.\n\nTry to connect again. If you continue to receive this message, contact your Citrix administrator.
+Wfica*E_BR_ERROR_NO_WINSTATIONS_AVAILABLE:	No WinStations are currently available.\n\nTry to connect again after a few minutes. If you continue to receive this message, contact your Citrix administrator.
+Wfica*E_BR_ERROR_OUT_OF_LICENSES:		No additional connection licenses are currently available.\n\nTry to connect again after a few minutes. If you continue to receive this message, contact your Citrix administrator.
+Wfica*E_BR_ERROR_SERVERS_OVERLOADED:		The Citrix XenApp servers are reporting full load and cannot accept your connection at this time.\n\nTry to connect again after a few minutes. If you continue to receive this message, contact your Citrix administrator.
+Wfica*E_BR_ERROR_XML_BAD_REQUEST:		The XML protocol returned the following error message: Bad request.\n\nTry to connect again. If you continue to receive this message, contact your Citrix administrator.
+Wfica*E_BR_ERROR_XML_INVALID_RESPONSE:		The server sent an invalid response.\n\nTry to connect again. If you continue to receive this message, contact your Citrix administrator.
+Wfica*E_BR_ERROR_XML_PARSER_ERROR:		The server cannot parse the XML request.\n\nTry to connect again. If you continue to receive this message, contact your Citrix administrator.
+Wfica*E_BR_ERROR_XML_UNSPECIFIED:		An unspecified XML error occurred.\n\nTry to connect again. If you continue to receive this message, contact your Citrix administrator.
+Wfica*E_BR_ERROR_XML_VERSION_MISMATCH:		A newer version of the client is required to complete your request.\n\nInstall the latest version of the client or contact your Citrix administrator.
+
+Wfica*E_INI_KEY_SYNTAX:	Error in configuration file:\n  \"%s\"\nBad Key \"%s\".
+Wfica*E_INI_VALUE_SYNTAX:	Error in configuration file:\n  \"%s\"\nBad Value \"%s\".
+Wfica*E_INI_VENDOR_RANGE:	Error in configuration file:\n  \"%s\"\nBad Vendor Range \"%s\".
+
+Wfica*E_NOT_USED2:      not used
+Wfica*E_NOT_USED3:      not used
+Wfica*E_NEW_PASSWORD_INVALID:	not used from this file
+
+Wfica*E_DYNLOAD_FAILED:		Error loading dynamic module:\n \"%s\"\n%s
+Wfica*E_DLL_NOT_FOUND:	Cannot find shared library "%s".
+Wfica*E_ENTRY_POINT_NOT_FOUND:		Cannot find entry point "%s" in shared library "%s".
+Wfica*E_THINWIRE_1_COMMAND:	\
+Thinwire 1 command sent by server.\n\
+This is not supported by the client.
+Wfica*E_CSM_MUST_SPECIFY_PROXY: 	You must specify a proxy server address.
+Wfica*E_CLIENT_ERROR_ENCRYPT_UNSUPPORT_BYHOST:	Your server does not support the encryption you selected.
+
+Wfica*E_CC_CTX_LOCK_READ_ERROR:              Error while reading _CTX_LOCK X property.
+Wfica*E_CC_CTX_LOCK_CORRUPTED:               _CTX_LOCK X property corrupted.
+Wfica*E_CC_CTX_SESSION_LIST_CORRUPTED:       _CTX_SESSION_LIST X property corrupted.
+Wfica*E_CC_TERMINATION_FAILED:               Only seamless applications may be terminated.
+Wfica*E_CC_ALIVE:                            Session is alive.
+Wfica*E_CC_WAIT_PREVIOUS:                    You must wait until the previous command has finished.
+Wfica*E_DIAG_INFO:                           Please review \"%s\" before sending it to Citrix.\nNote that encrypted passwords can be decoded by Citrix employees.\n\n%s
+
+Wfica*E_SSLSDK_SUCCESS:                                     The function call was successful (SSL error 0).
+Wfica*E_SSLSDK_RENEGOTIATE:                                 The SSL system could not renegotiate ciphersuites (SSL error 1).
+Wfica*E_SSLSDK_HANDSHAKE_COMPLETE:                          The handshake loop failed (SSL error 2).
+Wfica*E_SSLSDK_UNKNOWN_ERROR:                               The third-party SSL provider could not proceed (SSL error 3).
+Wfica*E_SSLSDK_NETWORK_ERROR:                               A network error occurred (SSL error 4).
+Wfica*E_SSLSDK_INTERNAL_ERROR:                              The third-party SSL provider could not proceed (SSL error 5).
+Wfica*E_SSLSDK_LIBRARY_NOT_AVAILABLE:                       A required library is missing (SSL error 6).
+Wfica*E_SSLSDK_NO_ENTRY_POINT_DEFINED:                      An entry point is missing in a required library (SSL error 7).
+Wfica*E_SSLSDK_INITIALISATION_FAILED:                       Initialization failed (SSL error 8).
+Wfica*E_SSLSDK_OUT_OF_MEMORY:                               There is no memory available to the application (SSL error 9).
+Wfica*E_SSLSDK_CREDENTIALS_NOT_FOUND:                       The identity certificate is missing (SSL error 10).
+Wfica*E_SSLSDK_CREDENTIALS_NOT_RECOGNISED:                  The specified certificate cannot be read (SSL error 11).
+Wfica*E_SSLSDK_CREDENTIALS_ACCESS_DENIED:                   Access to the specified certificate is denied (SSL error 12).
+Wfica*E_SSLSDK_SSL_NOT_AVAILABLE:                           The SSL library is missing (SSL error 13).
+Wfica*E_SSLSDK_INSUFFICIENT_SECURITY_AVAILABLE:             The selected encryption level is not supported (SSL error 14).
+Wfica*E_SSLSDK_SECURITY_CONTEXT_INVALID:                    The SSL security context is invalid or has expired (SSL error 15).
+Wfica*E_SSLSDK_BAD_SSL_PACKET:                              The supplied data is not a valid, or expected, SSL packet (SSL error 16).
+Wfica*E_SSLSDK_BAD_SOCKS5_PACKET:                           The supplied data is not a valid, or expected, SOCKS 5 packet (SSL error 17).
+Wfica*E_SSLSDK_MESSAGE_ALTERED:                             The supplied SSL packet has been altered (SSL error 18).
+Wfica*E_SSLSDK_MESSAGE_OUT_OF_SEQUENCE:                     The supplied SSL packet is out of sequence and therefore invalid (SSL error 19).
+Wfica*E_SSLSDK_MESSAGE_INCOMPLETE:                          The supplied data is an incomplete protocol packet (SSL error 20).
+Wfica*E_SSLSDK_BAD_SOCKS5_METHOD_RESPONSE:                  The server response to the SOCKS 5 hello packet is invalid (SSL error 21).
+Wfica*E_SSLSDK_BAD_SOCKS5_CONNECT_RESPONSE:                 The server response to the SOCKS 5 connect request is invalid (SSL error 22).
+Wfica*E_SSLSDK_UNSUPPORTED_SOCKS_ADDRESS_TYPE:              The address type is unsupported (SSL error 23).
+Wfica*E_SSLSDK_SEND_AND_TERMINATE:                          The third-party SSL provider could not proceed (SSL error 24).
+Wfica*E_SSLSDK_PERFORM_REDIRECTION:                         The third-party SSL provider could not proceed (SSL error 25).
+Wfica*E_SSLSDK_UNABLE_TO_OPEN_KEYSTORE:                     The keystore cannot be opened (SSL error 26).
+Wfica*E_SSLSDK_UNABLE_TO_FIND_CERTIFICATE:                  The identity certificate is missing (SSL error 27).
+Wfica*E_SSLSDK_INVALID_SOCKET_TYPE:                         The socket provided is not of the correct type (SSL error 28).
+Wfica*E_SSLSDK_SOCKS5_HANDSHAKE_FAILED:                     The SOCKS 5 handshake failed (SSL error 29).
+Wfica*E_SSLSDK_BUFFER_TOO_SMALL:                            The supplied buffer is too small (SSL error 30).
+Wfica*E_SSLSDK_INVALID_CONTEXT:                             The supplied SDK context is invalid for the function called (SSL error 31).
+Wfica*E_SSLSDK_BAD_SOCKS5_METHOD_REQUEST:                   The SOCKS 5 client hello packet is invalid (SSL error 32).
+Wfica*E_SSLSDK_BAD_SOCKS5_CONNECT_REQUEST:                  The SOCKS 5 client connect request is invalid (SSL error 33).
+Wfica*E_SSLSDK_SOCKS5_COMMAND_UNSUPPORTED:                  The SOCKS 5 command requested by the client is not supported (SSL error 34).
+Wfica*E_SSLSDK_REDIRECTION_ACCESS_FAILURE:                  The SOCKS 5 redirection is denied by the access policy (SSL error 35).
+Wfica*E_SSLSDK_SOCKS5_NETWORK_UNREACHABLE:                  The server you have selected is not accepting connections (SSL error 36).
+Wfica*E_SSLSDK_SOCKS5_HOST_UNREACHABLE:                     There is no route from the Citrix SSL Relay to the specified subnet address (SSL error 37).
+Wfica*E_SSLSDK_SOCKS5_CONNECTION_REFUSED:                   Connection refused (SSL error 38).
+Wfica*E_SSLSDK_SOCKS5_TTL_EXPIRED:                          Time to live expired (SSL error 39).
+Wfica*E_SSLSDK_HOSTNAME_NOT_FOUND:                          The Citrix SSL Relay name could not be resolved (SSL error 40).
+Wfica*E_SSLSDK_UNABLE_TO_CREATE_SOCKET:                     The socket could not be created (SSL error 41).
+Wfica*E_SSLSDK_CONNECTION_REFUSED:                          Connection refused (SSL error 42).
+Wfica*E_SSLSDK_ALERT_CLOSE_NOTIFY:                          The remote SSL peer sent a Close Notify alert (SSL error 43).
+Wfica*E_SSLSDK_ALERT_UNEXPECTED_MESSAGE:                    The remote SSL peer sent an Unexpected Message alert (SSL error 44).
+Wfica*E_SSLSDK_ALERT_BAD_MAC:                               The remote SSL peer sent a Bad MAC alert (SSL error 45).
+Wfica*E_SSLSDK_ALERT_DECOMPRESSION_FAILED:                  The remote SSL peer sent a Decompression failure alert (SSL error 46).
+Wfica*E_SSLSDK_ALERT_HANDSHAKE_FAILED:                      The remote SSL peer sent a Handshake Failure alert (SSL error 47).
+Wfica*E_SSLSDK_ALERT_NO_CERTIFICATE:                        The remote SSL peer sent a No Certificate Available alert (SSL error 48).
+Wfica*E_SSLSDK_ALERT_BAD_CERTIFICATE:                       The remote SSL peer sent a Bad Certificate alert (SSL error 49).
+Wfica*E_SSLSDK_ALERT_UNSUPPORTED_CERT:                      The remote SSL peer sent an Unsupported Certificate alert (SSL error 50).
+Wfica*E_SSLSDK_ALERT_CERTIFICATE_REVOKED:                   The remote SSL peer sent a Certificate Revoked alert (SSL error 51).
+Wfica*E_SSLSDK_ALERT_CERTIFICATE_EXPIRED:                   The remote SSL peer sent a Certificate Expired alert (SSL error 52).
+Wfica*E_SSLSDK_ALERT_CERTIFICATE_UNKNOWN:                   The remote SSL peer sent a Certificate Unknown alert (SSL error 53).
+Wfica*E_SSLSDK_ALERT_ILLEGAL_PARAMETER:                     The remote SSL peer sent an Illegal Parameter alert (SSL error 54).
+Wfica*E_SSLSDK_ALERT_UNKNOWN:                               The remote SSL peer sent an unrecognized alert (SSL error 55).
+Wfica*E_SSLSDK_UNABLE_TO_SET_VERIFY_PATHS:                  The default root certificate store could not be set (SSL error 56).
+Wfica*E_SSLSDK_UNABLE_TO_SET_CERTIFICATE:                   The identity certificate could not be set (SSL error 57).
+Wfica*E_SSLSDK_UNABLE_TO_SET_KEY:                           The private key for the identity certificate could not be set (SSL error 58).
+Wfica*E_SSLSDK_INVALID_COMMON_NAME:                         The server sent a security certificate identifying \"%s\",\n\
+the SSL connection was to \"%s\" (SSL error 59).
+Wfica*E_SSLSDK_X509ERR_DEPTH_ZERO_SELF_SIGNED_CERT:         The received identity certificate is a root certificate (SSL error 60).
+Wfica*E_SSLSDK_X509ERR_UNABLE_TO_GET_ISSUER_CERT_LOCALLY:   You have not chosen to trust \"%s\", the issuer of the server's security certificate (SSL error 61).
+Wfica*E_SSLSDK_X509ERR_UNABLE_TO_GET_ISSUER_CERT:           A valid root certificate for the received identity certificate could not be found (SSL error 62).
+Wfica*E_SSLSDK_X509ERR_SELF_SIGNED_CERT_IN_CHAIN:           There was a self-signed certificate in the certificate chain (SSL error 63).
+Wfica*E_SSLSDK_X509ERR_UNABLE_TO_VERIFY_LEAF_SIGNATURE:     The signature on the server certificate could not be validated (SSL error 64).
+Wfica*E_SSLSDK_X509ERR_UNABLE_TO_DECODE_ISSUER_PUBLIC_KEY:  It was not possible to decode the identity certificate's public key (SSL error 65).
+Wfica*E_SSLSDK_X509ERR_CERT_SIGNATURE_FAILURE:              The signature on the server certificate is incorrect (SSL error 66).
+Wfica*E_SSLSDK_X509ERR_ERROR_IN_CERT_NOT_BEFORE_FIELD:      The identity certificate's Not Before field is invalid (SSL error 67).
+Wfica*E_SSLSDK_X509ERR_CERT_NOT_YET_VALID:                  The server sent a security certificate that is not yet valid. The certificate \"%s\" is valid from %s to %s (SSL error 68).
+Wfica*E_SSLSDK_X509ERR_ERROR_IN_CERT_NOT_AFTER_FIELD:       The identity certificate's Not After field is invalid (SSL error 69).
+Wfica*E_SSLSDK_X509ERR_CERT_HAS_EXPIRED:                    The server sent an expired security certificate. The certificate \"%s\" is valid from %s to %s (SSL error 70).
+Wfica*E_SSLSDK_UNIMPLEMENTED:                               An unsupported method was called. (SSL error 71).
+Wfica*E_SSLSDK_FAILED_TO_LOAD_ALL_CERTIFICATES:             None of the root certificates in the keystore is valid (SSL error 72).
+Wfica*E_SSLSDK_FAILED_TO_LOAD_ANY_CERTIFICATES:             One or more of the root certificates in the keystore are invalid (SSL error 73).
+Wfica*E_SSLSDK_AUTHENTICATION_FAILURE:                      Client authentication failed (SSL error 74).
+
+Wfica*E_SSLSDK_X509ERR_NO_REVOCATION_PROVIDER:              The server certificate could not be checked for revocation as required by your SSL policy settings.\n\
+No certificate revocation providers could be loaded (SSL error 78).
+Wfica*E_SSLSDK_X509ERR_BAD_CERTIFICATE_KEY_LENGTH:          The security certificate \"%s\" is not suitable for use in SSL connections.\n\
+(Certificate key length is longer than issuer certificate key length, SSL error 79).
+Wfica*E_SSLSDK_X509ERR_BAD_CERTIFICATE_PATH_LENGTH:         The security certificate \"%s\" is not suitable for use in SSL connections.\n\
+(Path Length field limits the chain length to %s certificates, SSL error 80)
+Wfica*E_SSLSDK_X509ERR_BAD_CERTIFICATE_ENHANCED_KEY:        The security certificate \"%s\" is not suitable for use in SSL connections.\n\
+(Unsuitable Enhanced Key Usage field, SSL error 81).
+Wfica*E_SSLSDK_X509ERR_BAD_CERTIFICATE_NETSCAPE:            The security certificate \"%s\" is not suitable for use in SSL connections.\n\
+(Unsuitable Netscape Usage Extension field, SSL error 82).
+Wfica*E_SSLSDK_X509ERR_BAD_CERTIFICATE_CONSTRAINTS:         The security certificate \"%s\" is not suitable for use in SSL connections.\n\
+(Unsuitable Basic constraints field, SSL error 83).
+Wfica*E_SSLSDK_X509ERR_BAD_CERTIFICATE_KEY_USAGE:           The security certificate \"%s\" is not suitable for use in SSL connections.\n\
+(Unsuitable Key Usage field, SSL error 84).
+Wfica*E_SSLSDK_X509ERR_BAD_CERTIFICATE_CRITICAL_EXTENSION:  The security certificate \"%s\" is not suitable for use in SSL connections.\n\
+(Unrecognised critical extension \"%s\", SSL error 85).
+Wfica*E_SSLSDK_X509ERR_BAD_CERTIFICATE_CERT_NAME:           The security certificate \"%s\" could not be validated. (SSL provider code: %s, SSL error 86)
+Wfica*E_SSLSDK_X509ERR_BAD_CERTIFICATE_DATE_NESTING:        The security certificate \"%s\" is not suitable for use in SSL connections.\n\
+(Certificate date range is outside issuer certificate date range, SSL error 87).
+Wfica*E_SSLSDK_X509ERR_BAD_CERTIFICATE_CHAIN_LENGTH:        The security certificate \"%s\" is not suitable for use in SSL connections.\n\
+(Certificate chain exceeds %s certificates, SSL error 88).
+
+Wfica*E_SSL_CONNREFUSED:                                    The Citrix SSL Server that you selected is not accepting connections.
+Wfica*E_SSL_NETUNREACH:                                     The network containing the Citrix SSL Server that you selected could not be reached.
+Wfica*E_SSL_TIMEDOUT:                                       There is no Citrix SSL Server configured on the specified address.
+Wfica*E_SSL_ILLEGAL_COMMONNAME:                             You must specify Server Location addresses as fully-qualified domain names to allow SSL connections to succeed.
+Wfica*E_SSL_NOT_AVAILABLE:                                  You must have 128-bit SSL support installed in order to use the SSL protocol.\r\n128-bit SSL support is available in the High Encryption pack or Internet Explorer versions with a Cipher Strength of 128-bit.
+
+Wfica*E_PROXY_CONNERR_HOST_MISSING:             Proxy connection failed: ProxyHost parameter required for custom proxy configurations.
+Wfica*E_PROXY_CONNERR_SOCKTYPE_UNSUPPORTED:     Proxy connection failed: The configured proxy server(s) does not support UDP.
+Wfica*E_PROXY_CONNERR_ALLOC_FAILURE:            Proxy connection failed: Out of memory.
+Wfica*E_PROXY_CONNERR_NOT_ACCEPTED:             Proxy connection failed: The configured proxy server is not accepting connections.
+Wfica*E_PROXY_CONNERR_NO_ANSWER:                Proxy connection failed: The configured proxy server is not answering.
+Wfica*E_PROXY_CONNERR_NET_UNREACHABLE:          Proxy connection failed: The network of the configured proxy server is unreachable.
+Wfica*E_PROXY_CONNERR_HOST_UNREACHABLE:         Proxy connection failed: The configured proxy server is unreachable.
+Wfica*E_PROXY_CONNERR_HOST_NOT_FOUND:           Proxy connection failed: The configured proxy server cannot be found.
+Wfica*E_PROXY_CONNERR_PROTOCOL_ERROR:           Proxy connection failed: Improper response from the proxy server.
+Wfica*E_PROXY_CONNERR_AUTH_FAILED:              Proxy connection failed: Authentication failure.
+Wfica*E_PROXY_CONNERR_UNSUPPORTED_AUTH_SCHEME:  Proxy connection failed: Unsupported proxy authentication scheme.
+Wfica*E_PROXY_CONNERR_PROXY_REFUSED:            Proxy connection failed: The configured proxy server refused to establish a connection.
+Wfica*E_PROXY_CONNERR_PROXY_FAILED:             Proxy connection failed: The configured proxy server failed to establish a connection.
+Wfica*E_PROXY_CONNERR_INTERNAL_ERROR:           Proxy connection failed: Internal error during proxy evaluation.
+Wfica*E_PROXY_DTCTERR_ALLOC_FAILURE:            Proxy detection failure: Out of memory.
+Wfica*E_PROXY_DTCTERR_NO_BROWSER_SETTINGS:      Proxy detection failure: Web browser proxy settings could not be located.
+Wfica*E_PROXY_DTCTERR_SCRIPT_BAD_URL:           Proxy detection failure: Improper auto-configuration URL.
+Wfica*E_PROXY_DTCTERR_SCRIPT_UNKNOWN_HOST:      Proxy detection failure: Unknown host in auto-configuration URL.
+Wfica*E_PROXY_DTCTERR_SCRIPT_NO_HTTPLIB:        Proxy detection failure: .PAC script HTTP download failed: Missing Internet library.
+Wfica*E_PROXY_DTCTERR_SCRIPT_CONNECT_FAILURE:   Proxy detection failure: .PAC script HTTP download failed: Connect failure.
+Wfica*E_PROXY_DTCTERR_SCRIPT_NOTFOUND:          Proxy detection failure: .PAC script HTTP download failed: Path not found.
+Wfica*E_PROXY_DTCTERR_SCRIPT_GENERAL_FAILURE:   Proxy detection failure: .PAC script HTTP download failed.
+Wfica*E_PROXY_DTCTERR_SCRIPT_EMPTY:             Proxy detection failure: Empty auto-configuration script.
+Wfica*E_PROXY_DTCTERR_SCRIPT_NO_SUPPORT:        Proxy detection failure: No JavaScript support.
+Wfica*E_PROXY_DTCTERR_SCRIPT_ERROR:             Proxy detection failure: JavaScript error.
+Wfica*E_PROXY_DTCTERR_SCRIPT_BAD_RESULT:        Proxy detection failure: Improper result from proxy auto-configuration script.
+Wfica*E_PROXY_DTCTERR_TOO_MANY_REDIRECTIONS:    Proxy detection failure: Too many redirections.
+
+Wfica*E_PNAGENT_FILE_UNREADABLE:                            Cannot read Citrix XenApp file \"%s\":\n%s.
+Wfica*E_PNAGENT_FILE_UNLAUNCHABLE:                          Cannot launch Citrix XenApp file \"%s\".
+
+Wfica*E_DROPPED_FILE_UNREADABLE:                            Cannot read file \"%s\":\n%s.
+Wfica*E_DROPPED_FILE_NOT_MAPPED:                            File \"%s\"\nis not on a drive-mapped file system.
+Wfica*E_NO_ASSOCIATION_FOR_FILE:                            No application is associated with the type of file \"%s\".
+Wfica*E_NO_ASSOCIATIONS_DEFINED:                            No file type associations are defined by the server you have selected.
+Wfica*E_NO_FILE_EXTENSION:                                  The type of file \"%s\" can not be ascertained as it does not have a file extension.
+
+Wfica*E_DRIVE_DISABLED:                                     File \"%s\"\nis on a drive-mapped file system which is currently disabled.
+Wfica*E_DRIVE_MAPPING_DISABLED:                             Client Drive Mapping is currently disabled.
+Wfica*E_NDSBROWSE_FAILED:	                            Cannot browse NDS tree: %s. \n%s
+Wfica*E_ASYNC_WRITE_ERROR:				    An error occured while writing to one or more of the files:\n%s
+Wfica*E_ASYNC_CONN_ERROR:				    Connection lost.  Data may be missing from some of the files:\n%s
+Wfica*E_PDA_CONTENTION: 				    A server application's attempt to access a PDA device has failed because it is currently in use.
+Wfica*E_CANNOT_REMOVE_LOCK_FILE: 			    Removal of the lockfile '%s' has failed although its creator (process %s) has exited.
+Wfica*E_INSUFFICIENT_PERMISSIONS_TO_FILE: 		    You do not have sufficient permissions to access file '%s'.
+Wfica*E_ICAROOT_DIRECTORY_INVALID:			    The ICAROOT directory could not be found or appears to be invalid.
+Wfica*E_LOCKDOWN_ERROR_GENERIC:	 Client Configuration Manager: Internal error %s
+Wfica*E_PASSWORD_EXPIRED:                                   Your password has expired and must be changed. Please enter a new password.
+Wfica*E_PASSWORD_NOT_CONFIRMED:                             The passwords you typed do not match. Please ensure you type the new password in both text boxes.
+Wfica*E_LAST_ERROR:	not used
+Wfica*E_LOCKDOWN_ERROR_SUCCESS: Client Configuration Manager:  The operation completed successfully.
+Wfica*E_LOCKDOWN_ERROR_ICA_FILE_TOO_LARGE: The client received an ICA file that is larger than %dk.\nThe connection has been rejected.
+Wfica*E_LOCKDOWN_ERROR_OUT_OF_MEMORY: Client Configuration Manager:  Out of memory error.
+Wfica*E_LOCKDOWN_ERROR_ICA_CHARACTER_ENCODING: The client received an ICA file that has an invalid character encoding.
+Wfica*E_LOCKDOWN_ERROR_ICA_BOOLEAN_ENCODING: Client Configuration Manager: Could not interpret value as a Boolean.
+Wfica*E_LOCKDOWN_ERROR_ICA_INTEGER_ENCODING: Client Configuration Manager: Could not interpret value as an Integer.
+Wfica*E_LOCKDOWN_ERROR_FILE_NOT_FOUND: Client Configuration Manager: Could not find the file named (%s).\nPlease check your installation, or contact your administrator.
+Wfica*E_LOCKDOWN_ERROR_FILE_IO: Client Configuration Manager: A filesystem error occurred while attempting to load a file.
+Wfica*E_LOCKDOWN_ERROR_INI_NO_EQUALS: The client received a corrupt ICA file.\nThe key (%s) has no associated value.
+Wfica*E_LOCKDOWN_ERROR_INI_UNTERMINATED_SECTION: The client received a corrupt ICA file.\nThe section named (%s) is not correctly terminated.
+Wfica*E_LOCKDOWN_ERROR_INI_GARBAGE_AFTER_SECTION: The client received a corrupt ICA file.\nThere is invalid data following the section named (%s).
+Wfica*E_LOCKDOWN_ERROR_INI_BAD_SECTION: The client received a corrupt ICA file.\nThe name (%s) is not allowed for a section.
+Wfica*E_LOCKDOWN_ERROR_ICA_FILE_NO_SERVERNAME: The client received a corrupt ICA file.\nThe ICA file has no [ApplicationServer] section.
+Wfica*E_LOCKDOWN_ERROR_INI_DUPLICATE_SECTION: The client received a corrupt ICA file.\nThe ICA file contains duplicate sections named (%s).
+Wfica*E_LOCKDOWN_ERROR_INI_DUPLICATE_KEYS: The client received a corrupt ICA file.\nICA File section %s contains duplicate keys named (%s).
+Wfica*E_LOCKDOWN_ERROR_LOCKDOWN_UNRECOGNISED_PARAMETER: The ICA file received contains a parameter (%s) not allowed by the lockdown profile for (%s).
+Wfica*E_LOCKDOWN_ERROR_LOCKDOWN_INVALID_VALUE: The ICA file received contains a parameter (%s) whose value does not satisfy the lockdown requirements of lockdown profile (%s).
+Wfica*E_LOCKDOWN_ERROR_LOCKDOWN_ZONE_NOT_ALLOWED: The server (%s) is not trusted for ICA connections.\nConnections to the (%s) region are not allowed by lockdown settings.\nPlease contact your administrator.
+Wfica*E_LOCKDOWN_ERROR_LOCKDOWN_UNKNOWN_ZONE: Client Configuration Manager: The client could not load lockdown settings for the region named (%s).\nPlease check your installation, or contact your administrator.
+Wfica*E_LOCKDOWN_ERROR_LOCKDOWN_BAD_FORMAT: Client Configuration Manager: A lockdown profile file has become corrupt.\nPlease check your installation, or contact your administrator.
+Wfica*E_LOCKDOWN_ERROR_LOCKDOWN_PROFILES_INCONSISTENT: Client Configuration Manager: No value could be found for (%s) that satisfies all lockdown requirements.\nThe lockdown requirements in force may be conflicting.
+Wfica*E_LOCKDOWN_ERROR_LOCKDOWN_VERSION_MISMATCH: Client Configuration Manager: The client version is too low to run using the installed configuration data.
+Wfica*E_LOCKDOWN_ERROR_COULD_NOT_INSTALL_CONFIG: Client Configuration Manager: An error occurred while installing configuration data.
+Wfica*E_LOCKDOWN_ERROR_ICA_FILE_UNRECOGNISED_SERVERNAME: Client Configuration Manager:  Could not find an ICA file or appsrv.ini entry corresponding to (%s).\nPlease check your installation, or contact your administrator.
+Wfica*E_LOCKDOWN_ERROR_COULD_NOT_UPDATE_CONFIG: Client Configuration Manager:  Unable to update your configuration data; you may not have the appropriate permissions.
+Wfica*E_LOCKDOWN_ERROR_LOCKDOWN_CLIENT_DISABLED: Client Configuration Manager:  The client is currently disabled for this machine or user.
+!
+! Non-error, language-dependent strings
+!
+
+Wfica*L_INVALID_LANGUAGE_STRING:	Invalid language string
+Wfica*L_LANGUAGE_NAME:			English
+Wfica*L_LANG_UNUSED1:                   unused
+Wfica*L_LANG_CODEPAGE:                  1252
+
+Wfica*L_COPYRIGHT_VER_PRODUCTNAME:	Citrix Receiver for Linux
+Wfica*L_COPYRIGHT_VERSION:		Version
+Wfica*L_COPYRIGHT_RIGHTS:		All rights reserved.
+
+! TRANSLATION WARNING! A space character must be maintained at the end of "Copy of ".
+Wfica*L_COPY_OF:			Copy of %.*s
+Wfica*L_N_PERCENT_OF_DRIVE:		%d%% of drive (%dM bytes)
+Wfica*L_N_MEGABYTES:			%dM bytes
+Wfica*L_CONNECTING_TO_SERVER:		Connecting to %s...
+Wfica*L_CONNECTED_TO_SERVER:		Connected to server %s
+Wfica*L_CONNECTION_FAILED_TO_SERVER:	Connection failed to server %s
+Wfica*L_CONNECTING_TO_ICA_SERVER:	Connecting to server
+Wfica*L_CONNECTING_TO_PROXY_SERVER:	Connecting to proxy server %s
+Wfica*L_CONNECTION_ESTABLISHED_NEGOTIATING_CAPABILITIES:	Connection established - negotiating capabilities with server %s
+Wfica*L_RESOLVING_SERVER_NAME:		Resolving server name
+Wfica*L_SENDING_MODULE_OPTIONS:		Sending module options to server %s
+Wfica*L_PROCESSING_REPLIES:		Processing replies from server %s
+Wfica*L_SYSTEM_TRAY:			Notification Area
+
+Wfica*L_AUTO_LOCATE:			(Auto-Locate)
+
+Wfica*L_ENCRYPTION_NONE:		None
+Wfica*L_ENCRYPTION_BASIC:		Basic
+Wfica*L_ENCRYPTION_RC5_40:		RC5 (40 bit)
+Wfica*L_ENCRYPTION_RC5_56:		RC5 (56 bit)
+Wfica*L_ENCRYPTION_RC5_128:		RC5 (128 bit)
+Wfica*L_ENCRYPTION_RC5_0:		RC5 (128 bit - Login Only)
+Wfica*L_ENCRYPTION_SSL:			SSL/TLS
+
+Wfica*L_ZLC_ON:				SpeedScreen Latency Reduction On
+Wfica*L_ZLC_OFF:			 
+
+Wfica*L_G2_WINDOW:		        SpeedScreen Local Text Echo
+Wfica*L_G2_MENU:		        Options
+Wfica*L_G2_MOVE_AS_TYPE:		Move This Window As I Type
+Wfica*L_G2_UNUSED:			not used
+Wfica*L_G2_CLEAR_AUTO:			Clear The Contents Of This Window Automatically
+Wfica*L_G2_CLEAR_NOW:			Clear The Contents Of This Window Now
+
+Wfica*L_SSL_ON:				(SSL/TLS Secured, %d bit)
+Wfica*L_SSL_INCLUDED:			Includes 256-bit SSL/TLS.
+Wfica*L_SSL_APP_SUFFIX:			%d-bit SSL/TLS
+Wfica*L_CC_COUNTERS:			%d Servers Used, %d Remote Applications
+
+Wfica*L_CITRIX_URL:                     http://www.citrix.com
+Wfica*L_POTENTIAL_SPEECHMIKE:           potential SpeechMike
+
+!
+!
+! Strings used by the YesNo confirmation system
+!
+
+Wfica*YesNo_Confirm_Exit:		Closing this window will disconnect\n\
+you from the server.\n\n\
+Are you sure you want to close and disconnect?
+
+Wfica*DoYouWantToResetHost: \
+You typed CTRL-ALT DELETE:\n\
+do you want to reset the session host?
+
+Wfica*DoYouWantToDeleteSection:	Are you sure you want to delete entry %s?
+
+Wfica*ContinueAfterColorApproxFallback: \
+Unable to allocate sufficient colors for color approximation.\n\
+Another application may have already allocated them.\n\n\
+Do you wish to continue using a private colormap?\n
+
+Wfica*DoYouWantToEnableReadAccess:	\
+An application has requested READ access to\n\
+a client drive mapping (%s:) marked as 'Query'.\n\
+Do you wish to permit this access?\n
+
+Wfica*DoYouWantToEnableWriteAccess:	\
+An application has requested WRITE access to\n\
+a client drive mapping (%s:) marked as 'Query'.\n\
+Do you wish to permit this access?\n
+
+Wfica*DoYouWantNoCharacterConversion:	\
+Your operating system is unable to convert characters from %s to %s.\n\
+Do you wish to continue?\n
+
+Wfica*DoYouWantToExecuteApplication:	\
+File type \"%s\" is not supported by application %s.\n\
+Do you wish to execute this application on this file?\n
+
+Wfica*DoYouWantToOpenContent:	\
+\"%s\" is published content, not an application.\n\
+Do you wish to open \"%s\" with a suitable application?\n
+
+Wfica*AllowAccessToPDA: \
+An application on the server is requesting access to your local PDA device.\n\
+This is potentially unsafe.\n\
+Do you want to grant access?\n
+
+Wfica*ContinueWithoutLock: \
+You do not have sufficient permission to create lockfiles in directory %s.\n\
+Conflict with other programs that access your local PDA device may result.\n\
+Do you want to continue anyway?\n
+
+Wfica*DoYouWantToUseNonFQDN:		WARNING: \"%s\" does not appear to be a fully-qualified domain name!\n\nAre you sure you want to keep this as the address of the Citrix Secure Gateway?
+
+!
+! YesNo Dialog resource settings (English)
+!
+
+Wfica*YesNoDialog_popup.title:			Please Confirm...
+Wfica*YesNoDialog.okLabelString:             OK
+Wfica*YesNoDialog.cancelLabelString:         Cancel
+Wfica*YesNoDialog.helpLabelString:         Log Off
+! Athena
+Wfica*YesNoDialog.okLabelString.label:             OK
+Wfica*YesNoDialog.cancelLabelString.label:         Cancel
+Wfica*YesNoDialog.logoffLabelString.label:         Log Off
+
+!
+! Resources for initialization dialog
+!
+
+Wfica*InitPanel_popup.title:	Citrix Receiver
+
+!
+! Resources for the about dialog box
+!
+
+Wfica*AboutFormDialog_popup.title:	About Citrix Receiver
+Wfica*AboutOkay.labelString:			OK
+Wfica*AboutOkay.leftAttachment: ATTACH_POSITION
+Wfica*AboutOkay.leftPosition: 40
+Wfica*AboutOkay.rightAttachment: ATTACH_POSITION
+Wfica*AboutOkay.rightPosition: 60
+
+!
+! Resources for the about copyright string
+!
+
+Wfica*AboutCredits.topOffset: 40
+
+!
+! Resources for the Diag dialog box
+!
+
+Wfica*DiagFormDialog_popup.title:	Diagnostic Information
+Wfica*DiagYes.labelString:			Yes
+Wfica*DiagYes.leftAttachment: ATTACH_POSITION
+Wfica*DiagYes.leftPosition: 10
+Wfica*DiagYes.rightAttachment: ATTACH_POSITION
+Wfica*DiagYes.rightPosition: 30
+Wfica*DiagNo.labelString:			No
+Wfica*DiagNo.leftAttachment: ATTACH_POSITION
+Wfica*DiagNo.leftPosition: 70
+Wfica*DiagNo.rightAttachment: ATTACH_POSITION
+Wfica*DiagNo.rightPosition: 90
+Wfica*DiagInfo.labelString:     Do you want to write detailed diagnostic information to a file?
+Wfica*DiagInfo.leftOffset: 10
+
+!
+! Resources for the splash screen
+!
+
+Wfica*SplashDialog_popup.title:	Citrix Receiver
+
+!
+! Resources for the scrolling locale and server/app selection boxes
+!
+
+Wfica*localeSelBox_popup.title:		Locale Selection
+Wfica*localeSelBox.okLabelString:		OK
+Wfica*localeSelBox.cancelLabelString:		Cancel
+Wfica*localeSelBox.listLabelString:		Keyboard Layout
+
+Wfica*PCKbdTypeSelBox_popup.title:		Server Keyboard Type Selection
+Wfica*PCKbdTypeSelBox.okLabelString:		OK
+Wfica*PCKbdTypeSelBox.cancelLabelString:	Cancel
+Wfica*PCKbdTypeSelBox.listLabelString:		Server Keyboard Type
+
+Wfica*networkServSelBox_popup.title:		Connection Selection
+Wfica*networkServSelBox.okLabelString:		OK
+Wfica*networkServSelBox.cancelLabelString:	Cancel
+Wfica*PREF_SERVER_LIST_LABEL_SERVER:		Server
+Wfica*PREF_SERVER_LIST_LABEL_APP:		Published Application
+
+!
+! Proxy authentication dialog resource settings (English)
+!
+
+Wfica*ProxyAuthDialog_popup.title:		Proxy Authorization Required
+
+Wfica*ProxyAuthenticationText: \
+User authentication is needed to access the proxy.
+
+Wfica*ProxyAuthDialog*proxyLabel.labelString:		Proxy
+Wfica*ProxyAuthDialog*realmLabel.labelString:		Realm
+Wfica*ProxyAuthDialog*usernameLabel.labelString:	Username
+Wfica*ProxyAuthDialog*passwordLabel.labelString:	Password
+Wfica*ProxyAuthDialog*OKButton.labelString:		OK
+Wfica*ProxyAuthDialog*cancelButton.labelString:		Cancel
+
+! Athena
+Wfica*ProxyIdentityLabel.label: Proxy
+Wfica*ProxyRealmLabel.label: Realm
+Wfica*ProxyAuthenticationUsernameLabel.label: Username
+Wfica*ProxyAuthenticationPasswordLabel.label: Password
+Wfica*ProxyAuthDialog.okLabelString.label:      OK
+Wfica*ProxyAuthDialog.cancelLabelString.label:  Cancel
+
+!
+! Reconnect Dialog resource settings (English)
+!
+
+Wfica*AutorecnxWarningLabel.labelString: Network or dial-up problems are preventing \
+communication with the server.\n\n\
+An attempt to automatically restore the connection will begin after a delay to\n\
+let the network recover.\n\n\
+If the problem persists, contact your network administrator.
+
+Wfica*AutorecnxCountdownLabel.labelString: Seconds until reconnect
+Wfica*AutorecnxRetriesLabel.labelString: Retries remaining
+Wfica*AutorecnxServerLabel.labelString: Connection Name
+Wfica*RecnxDialog_popup.title:                  Error in Connection
+Wfica*RecnxDialog.OKButton.labelString:             Reconnect Now
+Wfica*RecnxDialog.cancelButton.labelString:         Cancel
+
+! Athena
+
+Wfica*AutorecnxWarningText: Network or dial-up problems are preventing communication \
+with the server.\n\n\
+An attempt to automatically restore the connection will begin after a delay to\n\
+let the network recover.\n\n\
+If the problem persists, contact your network administrator.\n\n
+
+Wfica*AutorecnxConnectionNameLabel.label:       Connection Name
+Wfica*AutorecnxCountdownLabel.label:            Seconds until reconnect
+Wfica*AutorecnxRetriesLabel.label:              Retries remaining
+
+Wfica*RecnxDialog.okLabelString.label:          Reconnect Now
+Wfica*RecnxDialog.cancelLabelString.label:      Cancel
+
+!
+! If you are having problems with CDE on 24-bit graphics
+! cards then uncomment the following 6 defaults. Note that
+! the color names can be any valid color available on your
+! display, but all 6 lines should be uncommented.
+!
+!Wfica*background:              DeepSkyBlue
+!Wfica*bottomShadowColor:       DarkSlateBlue
+!Wfica*foreground:              Black
+!Wfica*topShadowColor:          LightSkyBlue1
+!Wfica*highlightColor:          Black
+!Wfica*borderColor:             Black
+
+Wfica*DoYouWantToClearCache: Clearing the bitmap cache is not recommended if you have any ICA connection open.\n\
+If you choose to clear the bitmap cache, first verify that all ICA connections are closed.\n\
+Do you want to clear the bitmap cache now?
+
+!
+! Copyright 1998-2005 Citrix Systems, Inc. All rights reserved.
+
+! Specify font for informative popups. This is needed at least on HP to display
+! accented characters.
+Wfica.InitPanel_popup*fontList: fixed
+Wfica.EDialog_popup*fontList: fixed
+Wfica.IDialog_popup*fontList: fixed
+
+!
+! Define a compatible colour for the dynamic Athena scrollbars.
+!
+
+Wfica*Viewport*Scrollbar*background:	#c0c0c0c0c0c0
+
+!
+! subset of editing commands for athena text fields
+!
+
+Wfica*Text.Translations: \
+        <Key>Right:     forward-character() \n\
+        <Key>Left:      backward-character() \n\
+        <Key>BackSpace: delete-previous-character() \n\
+        <Key>Delete:    delete-next-character() \n\
+        Ctrl<Key>:      no-op() \n\
+        <Key>Return:    no-op() \n\
+        <Key>KP_Enter:  no-op() \n\
+        <Key>Linefeed:  no-op() \n\
+        <Key>Tab:       no-op() \n\
+        <Key>:          insert-char() \n\
+        <Btn1Down>:     select-start() \n\
+        <Btn1Motion>:   extend-adjust() \n\
+        <Btn1Up>:       extend-end(PRIMARY, CUT_BUFFER0) \n\
+        <Btn2Down>:     insert-selection(PRIMARY, CUT_BUFFER0) \n\
+        <Btn3Down>:     extend-start() \n\
+        <Btn3Motion>:   extend-adjust() \n\
+        <Btn3Up>:       extend-end(PRIMARY, CUT_BUFFER0) \n\
+        <FocusIn>:      display-caret(on) \n\
+        <FocusOut>:     display-caret(off)
+
+Wfica*Command.Translations: #override <FocusIn>:highlight()\n<FocusOut>:reset()
+
+Wfica*InitPanel_popup.width: 600

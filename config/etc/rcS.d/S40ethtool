@@ -1,0 +1,140 @@
+#!/usr/bin/env tclsh
+
+package require inifile
+
+# /run/network/*/ содержит список инициализированных сетевых интерфейсов.
+# В файле address записан ethrnet-адрес интерфейса. Если адрес получен
+# через, то имеется файл dhcp.
+# Файлы конфигурации в каталоге /mnt.
+# --- !!! ---
+set nw_list   "/run/network"
+set tc_config "/mnt/config"
+
+proc tune_ethtool {iface speed duplex autoneg} {
+    set cmd_line {/sbin/ethtool -s}
+
+    lappend cmd_line $iface
+    if {$autoneg != ""} {lappend cmd_line autoneg $autoneg}
+    if {$autoneg != "on"} {
+	if {$speed   != ""} {lappend cmd_line speed   $speed}
+	if {$duplex  != ""} {lappend cmd_line duplex  $duplex}
+    }
+
+    # --- !!! ---
+    catch {exec {*}$cmd_line}
+    #puts $cmd_line
+}
+
+proc tune_mii {iface speed duplex autoneg} {
+    set cmd_line {/sbin/mii-tool}
+    set media ""
+
+    if {$autoneg == "off"} {lappend cmd_line -F} \
+	elseif {$autoneg == "on"} {lappend cmd_line -A} \
+	else return
+
+    if {$autoneg != "on"} {
+	if {$speed == "100"} {set media "100baseTx-"} \
+	    elseif {$speed == "10"} {set media "10baseT-"} \
+	    else return
+	
+	if {$duplex == "full"} {set media "${media}FD"} \
+	    elseif {$duplex == "half"} {set media "${media}HD"} \
+	    else return
+    } else {
+	set media "100baseT4,100baseTx-FD,100baseTx-HD,10baseT-FD,10baseT-HD"
+    }
+
+    lappend cmd_line $media $iface
+
+    # --- !!! ---
+    catch {exec {*}$cmd_line}
+    #puts $cmd_line
+}
+
+# Чтение сетевой конфигурации.
+# nw_config   - ссылка на ассоциативный массив.
+# config_file - файл конфигурации.
+proc read_nw_config {nw_config config_file} {
+    upvar $nw_config config
+
+    if {[catch {::ini::open $config_file "r"} config_fd] == 0} {
+	catch {array set config [::ini::get $config_fd "network"]}
+	::ini::close $config_fd
+    }
+}
+
+# Настройка сетевого интерфейса.
+# iface        - имя интерфейса.
+# iface_config - ссылка на ассоциативный массив.
+# 1. ethtoo или mii.
+# 2. udhcpc для регистрации в DNS.
+proc configure_nw_interface {iface iface_config} {
+    upvar $iface_config config
+    global nw_list
+
+    # настройка интерфейса
+    switch $config(interface) {
+	ethtool {tune_ethtool $iface $config(speed) $config(duplex) $config(autoneg)}
+	mii     {tune_mii     $iface $config(speed) $config(duplex) $config(autoneg)}
+    }
+
+    # сохранить domain для дальнейшей регистрации в DNS
+    if {$config(domain) != ""} {
+	catch {
+	    set domain_fd [open $nw_list/$iface/domain "w"]
+	    puts -nonewline $domain_fd $config(domain)
+	    close $domain_fd
+	}
+    }
+
+    # регистрация в DNS если есть файл dhcp
+    if {[file isfile "$nw_list/$iface/dhcp"]} {
+	if {$config(name) != ""} {
+
+	    set dns_name ${config(name)}
+
+	    if {$config(domain) != ""} {
+		set dns_name ${dns_name}.${config(domain)}
+	    }
+
+	    # --- !!! ---
+	    catch {exec /sbin/udhcpc -i $iface -F "${dns_name}" -t 10 -n -q}
+	    #puts "/sbin/udhcpc -i $iface -F ${dns_name} -t 10 -n -q"
+
+	    catch {
+		set dns_fd [open "$nw_list/$iface/dns" w]
+		puts -nonewline $dns_fd $dns_name
+		close $dns_fd
+	    }
+	}
+    }
+}
+
+# Общая конфигурация.
+array set nw_config {
+interface ""
+speed     ""
+duplex    ""
+autoneg   ""
+name      ""
+domain    ""}
+
+read_nw_config nw_config [file join $tc_config "network"]
+
+# Для каждого инициализированного интерфейса:
+#  - проверка наличия кнфигурации
+#  - чтение конфигурации
+#  - использование ethtoo|mii, если необходимо
+#  - использование udhcpc для регистрациив DNS, если необходимо
+foreach interface [glob -nocomplain -type d -directory ${nw_list} *] {
+    array set iface_config [array get nw_config]
+    set iface [file tail $interface]
+    if {[catch {open $interface/address "r"} iface_fd] == 0} {
+	read_nw_config iface_config [file join $tc_config [string map {: -} [gets $iface_fd]] "network"]
+	close $iface_fd
+    }
+    configure_nw_interface $iface iface_config
+}
+
+exit 0

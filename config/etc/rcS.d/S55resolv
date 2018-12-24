@@ -1,0 +1,11 @@
+#!/bin/sh
+
+# первичный запуск сети
+echo ... configuring resolv.conf ...
+
+if [ -f /etc/domain ]; then
+    cat /etc/resolv.conf | sort -u > /tmp/.resolv
+    domain=$(cat /etc/domain)
+    echo search $domain >> /tmp/.resolv
+    mv /tmp/.resolv /etc/resolv.conf
+fi

@@ -1,0 +1,10 @@
+# проверка работы udev
+#ACTION=="add", RUN+="/usr/local/sbin/udev-test"
+
+# подключение
+ACTION=="add", ENV{ID_TYPE}=="disk",   TAG=="enable", RUN+="/usr/local/sbin/mount-dev disk"
+ACTION=="add", ENV{ID_TYPE}=="cd",     TAG=="enable", RUN+="/usr/local/sbin/mount-dev cd"
+ACTION=="add", ENV{ID_TYPE}=="floppy", TAG=="enable", RUN+="/usr/local/sbin/mount-dev floppy"
+
+# отключение
+ACTION=="remove", ENV{DEVTYPE}=="disk|partition", RUN+="/usr/local/sbin/umount-dev"
